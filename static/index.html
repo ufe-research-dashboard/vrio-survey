@@ -663,6 +663,7 @@ body {
     <div id="adminLogin">
       <div class="admin-login-wrap">
         <div class="admin-login-box">
+          <button onclick="switchPage('student')" style="background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:0;margin-bottom:20px;display:flex;align-items:center;gap:5px;font-family:'Manrope',sans-serif">← Тест рүү буцах</button>
           <h2>Багшийн нэвтрэлт</h2>
           <p>VRIO үнэлгээний удирдлагын самбар</p>
           <label class="field-label">Нууц үг</label>
@@ -1041,7 +1042,7 @@ function doLogin(){
   if(pw===ADMIN_PW){ adminAuthed=true; document.getElementById('loginErr').style.display='none'; checkAdminLogin(); }
   else { document.getElementById('loginErr').style.display='block'; }
 }
-function doLogout(){ adminAuthed=false; stopPolling(); document.getElementById('pwInput').value=''; checkAdminLogin(); }
+function doLogout(){ adminAuthed=false; stopPolling(); document.getElementById('pwInput').value=''; switchPage('student'); }
 
 function switchAdmin(tab){
   ['stats','students','discuss'].forEach(t=>{
