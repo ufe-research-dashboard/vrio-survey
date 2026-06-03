@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: vrio-survey
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    disk:
+      name: vrio-db
+      mountPath: /var/data
+      sizeGB: 1
