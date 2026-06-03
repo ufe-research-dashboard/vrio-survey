@@ -1029,6 +1029,7 @@ function checkAdminLogin(){
   document.getElementById('adminDash').style.display=adminAuthed?'flex':'none';
   if(adminAuthed) {
     refreshAdminDash();
+    startPolling();
     // sync theme btn in admin topbar
     const saved = localStorage.getItem('theme')||'light';
     const btn = document.getElementById('adminThemeBtn');
@@ -1040,7 +1041,7 @@ function doLogin(){
   if(pw===ADMIN_PW){ adminAuthed=true; document.getElementById('loginErr').style.display='none'; checkAdminLogin(); }
   else { document.getElementById('loginErr').style.display='block'; }
 }
-function doLogout(){ adminAuthed=false; document.getElementById('pwInput').value=''; checkAdminLogin(); }
+function doLogout(){ adminAuthed=false; stopPolling(); document.getElementById('pwInput').value=''; checkAdminLogin(); }
 
 function switchAdmin(tab){
   ['stats','students','discuss'].forEach(t=>{
@@ -1135,6 +1136,28 @@ async function doReset() {
   if(document.querySelector('.admin-tab.active')?.textContent.includes('Хэлэлцүүлэг')) {
     renderDiscussion('admin');
   }
+}
+
+// ── auto-refresh polling ──
+let _pollInterval = null;
+
+function startPolling() {
+  if (_pollInterval) return;
+  _pollInterval = setInterval(async () => {
+    if (!adminAuthed) return;
+    const activeSection = document.querySelector('.admin-section.active');
+    if (!activeSection) return;
+    const id = activeSection.id;
+    if (id === 'adminStats' || id === 'adminStudents') {
+      await refreshAdminDash();
+    } else if (id === 'adminDiscuss') {
+      await renderDiscussion('admin');
+    }
+  }, 5000);
+}
+
+function stopPolling() {
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
 }
 
 // ── toast ──
