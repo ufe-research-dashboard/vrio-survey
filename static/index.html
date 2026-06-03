@@ -217,6 +217,35 @@ body {
 }
 .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
 
+.reset-btn {
+  background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3);
+  color: #f87171; font-size: 13px; font-weight: 700;
+  padding: 9px 16px; border-radius: 9px; cursor: pointer;
+  font-family: 'Manrope', sans-serif; transition: all .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.reset-btn:hover { background: rgba(239,68,68,.2); border-color: var(--danger); }
+
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; animation: fadeUp .2s ease;
+}
+.confirm-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; padding: 32px; max-width: 360px; width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5); text-align: center;
+}
+.confirm-box .icon { font-size: 40px; margin-bottom: 14px; }
+.confirm-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.confirm-box p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Manrope', sans-serif; border: none; transition: all .2s; }
+.confirm-cancel { background: var(--surface2); color: var(--muted); border: 1px solid var(--border) !important; }
+.confirm-cancel:hover { color: var(--text); }
+.confirm-danger { background: var(--danger); color: #fff; }
+.confirm-danger:hover { background: #dc2626; }
+
 /* admin tabs */
 .admin-tabs { display: flex; gap: 6px; margin-bottom: 22px; background: var(--surface2); padding: 5px; border-radius: 12px; }
 .admin-tab {
@@ -593,7 +622,10 @@ body {
           <div class="admin-title">Багшийн самбар</div>
           <div class="admin-sub">VRIO үнэлгээний ерөнхий дүн, хэлэлцүүлэг</div>
         </div>
-        <button class="logout-btn" onclick="doLogout()">Гарах</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="reset-btn" onclick="confirmReset()">🗑 Өгөгдөл цэвэрлэх</button>
+          <button class="logout-btn" onclick="doLogout()">Гарах</button>
+        </div>
       </div>
 
       <div class="admin-tabs">
@@ -666,6 +698,17 @@ body {
 
 </div>
 <div id="toast"></div>
+<div id="confirmOverlay" style="display:none" class="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <div class="icon">⚠️</div>
+    <h3>Өгөгдөл бүгдийг устгах уу?</h3>
+    <p>Бүх оюутны хариулт болон хэлэлцүүлгийн пост устгагдана.<br>Энэ үйлдлийг буцаах боломжгүй.</p>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">Болих</button>
+      <button class="confirm-danger" onclick="doReset()">Тийм, устга</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const ADMIN_PW = '4441';
@@ -898,6 +941,23 @@ async function refreshAdminDash(){
     const l=r.pct>=78?'Өндөр':r.pct>=50?'Дунд':'Сул';
     return `<tr><td style="font-weight:600">${r.session_id}</td><td>${r.tot}/36</td><td>${r.pct}%</td><td style="color:var(--V)">${r.V}</td><td style="color:var(--R)">${r.R}</td><td style="color:var(--I)">${r.I}</td><td style="color:var(--O)">${r.O}</td><td><span class="badge ${b}">${l}</span></td></tr>`;
   }).join('');
+}
+
+// ── reset ──
+function confirmReset() {
+  document.getElementById('confirmOverlay').style.display='flex';
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').style.display='none';
+}
+async function doReset() {
+  closeConfirm();
+  await apiPost('/api/reset', {});
+  showToast('✓ Өгөгдөл цэвэрлэгдлээ');
+  refreshAdminDash();
+  if(document.querySelector('.admin-tab.active')?.textContent.includes('Хэлэлцүүлэг')) {
+    renderDiscussion('admin');
+  }
 }
 
 // ── toast ──
