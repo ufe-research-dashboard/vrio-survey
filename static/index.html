@@ -1,82 +1,960 @@
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import sqlite3, os
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VRIO Артистын Өөрийн Үнэлгээ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mongolian&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
 
-app = Flask(__name__, static_folder='static')
-CORS(app)
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161c;
+    --surface2: #1e1e27;
+    --border: #2a2a38;
+    --accent: #7c6ef7;
+    --accent2: #a89cf7;
+    --text: #e8e6f0;
+    --muted: #7a7890;
+    --V: #4da6ff;
+    --R: #a78bfa;
+    --I: #34d399;
+    --O: #fb923c;
+    --success: #22c55e;
+    --danger: #ef4444;
+  }
 
-DB = '/tmp/vrio.db'
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-def get_db():
-    conn = sqlite3.connect(DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-def init_db():
-    conn = get_db()
-    conn.execute('''CREATE TABLE IF NOT EXISTS responses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT NOT NULL,
-        V INTEGER, R INTEGER, I INTEGER, O INTEGER,
-        tot INTEGER, pct INTEGER,
-        ts DATETIME DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.execute('''CREATE TABLE IF NOT EXISTS discussion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        role TEXT NOT NULL,
-        name TEXT NOT NULL,
-        text TEXT NOT NULL,
-        ts DATETIME DEFAULT CURRENT_TIMESTAMP
-    )''')
-    conn.commit()
-    conn.close()
+  /* ── LAYOUT ── */
+  #app { max-width: 680px; margin: 0 auto; padding: 24px 16px 80px; }
 
-init_db()
+  /* ── NAV ── */
+  .top-nav {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .nav-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent2);
+    letter-spacing: -0.5px;
+    flex: 1;
+  }
+  .nav-logo span { color: var(--muted); font-style: italic; }
+  .nav-tab {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .nav-tab.active, .nav-tab:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-@app.route('/')
-def index():
-    return send_from_directory('static', 'index.html')
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
 
-@app.route('/api/response', methods=['POST'])
-def save_response():
-    d = request.json
-    conn = get_db()
-    existing = conn.execute('SELECT id FROM responses WHERE session_id=?', (d['session_id'],)).fetchone()
-    if existing:
-        conn.execute('UPDATE responses SET V=?,R=?,I=?,O=?,tot=?,pct=?,ts=CURRENT_TIMESTAMP WHERE session_id=?',
-                     (d['V'],d['R'],d['I'],d['O'],d['tot'],d['pct'],d['session_id']))
-    else:
-        conn.execute('INSERT INTO responses (session_id,V,R,I,O,tot,pct) VALUES (?,?,?,?,?,?,?)',
-                     (d['session_id'],d['V'],d['R'],d['I'],d['O'],d['tot'],d['pct']))
-    conn.commit()
-    conn.close()
-    return jsonify({'ok': True})
+  /* ── SECTION HEADINGS ── */
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
 
-@app.route('/api/responses', methods=['GET'])
-def get_responses():
-    conn = get_db()
-    rows = conn.execute('SELECT * FROM responses ORDER BY ts DESC').fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
 
-@app.route('/api/discussion', methods=['GET'])
-def get_discussion():
-    conn = get_db()
-    rows = conn.execute('SELECT * FROM discussion ORDER BY ts DESC').fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+  /* ── PROGRESS ── */
+  .prog-wrap { height: 3px; background: var(--surface2); border-radius: 2px; margin-bottom: 24px; overflow: hidden; }
+  .prog-fill { height: 3px; background: var(--accent); border-radius: 2px; transition: width .3s; }
 
-@app.route('/api/discussion', methods=['POST'])
-def post_discussion():
-    d = request.json
-    conn = get_db()
-    conn.execute('INSERT INTO discussion (role,name,text) VALUES (?,?,?)',
-                 (d['role'], d['name'], d['text']))
-    conn.commit()
-    conn.close()
-    return jsonify({'ok': True})
+  /* ── DIM HEADER ── */
+  .dim-header { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; }
+  .dim-pill {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; letter-spacing: .04em;
+  }
+  .pill-V { background: #1a3a5c; color: var(--V); }
+  .pill-R { background: #2a1f55; color: var(--R); }
+  .pill-I { background: #103827; color: var(--I); }
+  .pill-O { background: #3a1f0d; color: var(--O); }
+  .dim-title { font-size: 15px; font-weight: 500; }
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+  /* ── QUESTION ── */
+  .q-label { font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+
+  .radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-row label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px 13px;
+    cursor: pointer; transition: all .15s;
+  }
+  .radio-row label:hover { border-color: var(--accent); color: var(--text); }
+  .radio-row input[type=radio] { accent-color: var(--accent); width: 14px; height: 14px; }
+  .radio-row label:has(input:checked) {
+    background: rgba(124,110,247,.18);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all .2s;
+    margin-top: 16px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #6a5de6; }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+  /* ── NAME STEP ── */
+  #nameStep { text-align: center; padding: 40px 0 20px; }
+  #nameStep .page-title { font-size: 30px; margin-bottom: 8px; }
+  .name-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; font-size: 16px;
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    margin-top: 20px; margin-bottom: 4px;
+    transition: border-color .2s;
+  }
+  .name-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── RESULT ── */
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .score-tile {
+    background: var(--surface2); border-radius: 12px;
+    padding: 16px; text-align: center;
+  }
+  .score-num { font-size: 30px; font-weight: 600; color: var(--accent2); }
+  .score-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .bar-row { margin-bottom: 10px; }
+  .bar-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .bar-bg { background: var(--surface2); border-radius: 4px; height: 7px; overflow: hidden; }
+  .bar-fill { height: 7px; border-radius: 4px; transition: width .7s ease; }
+
+  .verdict {
+    border-radius: 12px; padding: 18px;
+    border: 1px solid var(--border); margin: 18px 0;
+  }
+  .verdict-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .verdict-desc { font-size: 13px; line-height: 1.7; color: var(--muted); margin-bottom: 12px; }
+  .action-list { list-style: none; }
+  .action-list li {
+    font-size: 13px; color: var(--muted); padding: 5px 0;
+    border-bottom: 1px solid var(--border); line-height: 1.5;
+  }
+  .action-list li:last-child { border-bottom: none; }
+  .action-list li::before { content: "→ "; color: var(--accent2); font-weight: 600; }
+
+  /* ── ADMIN ── */
+  .admin-login {
+    max-width: 360px; margin: 60px auto;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+  }
+  .admin-login h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 20px; }
+  .field-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; }
+  .field-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px; font-size: 14px;
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    margin-bottom: 14px; transition: border-color .2s;
+  }
+  .field-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── STATS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .stat-val { font-size: 26px; font-weight: 600; color: var(--accent2); }
+  .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .avg-bars { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .avg-bars h3 { font-size: 13px; color: var(--muted); margin-bottom: 14px; font-weight: 500; }
+
+  /* student table */
+  .s-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .s-table th {
+    text-align: left; color: var(--muted); font-weight: 500;
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  .s-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .s-table tr:last-child td { border-bottom: none; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    font-weight: 500;
+  }
+  .badge-high { background: rgba(52,211,153,.18); color: var(--I); }
+  .badge-mid { background: rgba(124,110,247,.18); color: var(--accent2); }
+  .badge-low { background: rgba(239,68,68,.18); color: #f87171; }
+
+  /* ── DISCUSSION ── */
+  .disc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .disc-header h3 { font-size: 16px; font-weight: 600; }
+  .post-count { font-size: 12px; color: var(--muted); }
+
+  .post-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+  .post-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .post-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .post-name { font-size: 13px; font-weight: 600; }
+  .post-time { font-size: 11px; color: var(--muted); margin-left: auto; }
+  .post-role { font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 500; }
+  .role-admin { background: rgba(251,146,60,.2); color: var(--O); }
+  .role-student { background: rgba(124,110,247,.2); color: var(--accent2); }
+  .post-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+  .post-score-tag {
+    display: inline-block; font-size: 11px; margin-top: 8px;
+    padding: 2px 9px; border-radius: 10px;
+    background: rgba(124,110,247,.15); color: var(--accent2);
+  }
+
+  .disc-compose {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;
+  }
+  .disc-compose h4 { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 500; }
+  .disc-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 11px 14px; font-size: 14px;
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    resize: none; height: 90px; transition: border-color .2s;
+  }
+  .disc-textarea:focus { outline: none; border-color: var(--accent); }
+  .disc-send {
+    margin-top: 10px; padding: 9px 20px; background: var(--accent);
+    color: #fff; border: none; border-radius: 8px; font-size: 13px;
+    font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: background .2s;
+  }
+  .disc-send:hover { background: #6a5de6; }
+
+  .empty-state { text-align: center; padding: 40px 0; color: var(--muted); font-size: 14px; }
+  .empty-state .emoji { font-size: 32px; display: block; margin-bottom: 10px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 13px; padding: 10px 20px;
+    border-radius: 20px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── ADMIN TABS ── */
+  .admin-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .admin-tab {
+    flex: 1; padding: 8px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all .2s;
+  }
+  .admin-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    margin-bottom: 10px; display: block;
+  }
+
+  .logout-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; padding: 5px 12px;
+    border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all .2s;
+  }
+  .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .warn { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #f87171; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP NAV -->
+  <div class="top-nav">
+    <div class="nav-logo">VRIO <span>/ Артист</span></div>
+    <button class="nav-tab active" id="tabStudent" onclick="switchPage('student')">Тест өгөх</button>
+    <button class="nav-tab" id="tabAdmin" onclick="switchPage('admin')">Багш</button>
+  </div>
+
+  <!-- ════════ STUDENT PAGE ════════ -->
+  <div class="page active" id="pageStudent">
+
+    <!-- Step 1: Survey -->
+    <div id="surveyStep">
+      <div class="prog-wrap"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+      <div class="dim-header">
+        <span class="dim-pill pill-V">V</span>
+        <span class="dim-title">Valuable — Үнэ цэнтэй эсэх</span>
+      </div>
+
+      <div class="card">
+        <p class="q-label">1. Таны урлаг / авьяас нь үзэгч, захиалагчид тодорхой асуудлыг шийддэг үү, эсвэл тодорхой сэтгэл хөдлөл төрүүлдэг үү?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="V1" value="3"><span>Тийм, тодорхой</span></label>
+          <label><input type="radio" name="V1" value="2"><span>Хэсэгчлэн</span></label>
+          <label><input type="radio" name="V1" value="1"><span>Тодорхойгүй</span></label>
+          <label><input type="radio" name="V1" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">2. Таны бүтээл / үзүүлбэр нь хүмүүс мөнгө, цаг зарцуулахад бэлэн байдаг уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="V2" value="3"><span>Тийм, төлдөг</span></label>
+          <label><input type="radio" name="V2" value="2"><span>Заримдаа</span></label>
+          <label><input type="radio" name="V2" value="1"><span>Ховор</span></label>
+          <label><input type="radio" name="V2" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">3. Таны ажлыг үзсэний дараа хүмүүс найз нөхөддөө санал болгодог уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="V3" value="3"><span>Байнга</span></label>
+          <label><input type="radio" name="V3" value="2"><span>Заримдаа</span></label>
+          <label><input type="radio" name="V3" value="1"><span>Ховор</span></label>
+          <label><input type="radio" name="V3" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+
+      <div class="dim-header">
+        <span class="dim-pill pill-R">R</span>
+        <span class="dim-title">Rare — Ховор, өвөрмөц эсэх</span>
+      </div>
+
+      <div class="card">
+        <p class="q-label">4. Таны урлагийн хэв маяг, дуу хоолой, дүр төрх нь Монголын артистуудаас ялгарч байдаг уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="R1" value="3"><span>Маш өвөрмөц</span></label>
+          <label><input type="radio" name="R1" value="2"><span>Бага зэрэг</span></label>
+          <label><input type="radio" name="R1" value="1"><span>Төстэй хүн бий</span></label>
+          <label><input type="radio" name="R1" value="0"><span>Ялгаагүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">5. Таны нэрийг сонсоод тэр дороо санаанд орох тодорхой зүйл (дүр, дуу, хэв маяг) байдаг уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="R2" value="3"><span>Тийм, тодорхой</span></label>
+          <label><input type="radio" name="R2" value="2"><span>Хэсэгчлэн</span></label>
+          <label><input type="radio" name="R2" value="1"><span>Тодорхойгүй</span></label>
+          <label><input type="radio" name="R2" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">6. Танд өрсөлдөгч артистаас ялгарах тусгай ур чадвар, соёл, хэл, эсвэл нэгдмэл сэдэв байдаг уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="R3" value="3"><span>Тийм</span></label>
+          <label><input type="radio" name="R3" value="2"><span>Бий, хөгжүүлж байна</span></label>
+          <label><input type="radio" name="R3" value="1"><span>Тодорхойгүй</span></label>
+          <label><input type="radio" name="R3" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+
+      <div class="dim-header">
+        <span class="dim-pill pill-I">I</span>
+        <span class="dim-title">Inimitable — Дуурайхад хэцүү эсэх</span>
+      </div>
+
+      <div class="card">
+        <p class="q-label">7. Таны брэнд нь олон жилийн туршлага, амьдралын түүх дээр тулгуурласан уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="I1" value="3"><span>Тийм, гүнзгий</span></label>
+          <label><input type="radio" name="I1" value="2"><span>Хэсэгчлэн</span></label>
+          <label><input type="radio" name="I1" value="1"><span>Тийм бишгүй</span></label>
+          <label><input type="radio" name="I1" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">8. Таны фэнүүд тантай хувийн холбоо, нэр хүнд мэдэрдэг үү? (зүгээр л дуу биш, хүнийг дагадаг)</p>
+        <div class="radio-row">
+          <label><input type="radio" name="I2" value="3"><span>Маш тодорхой</span></label>
+          <label><input type="radio" name="I2" value="2"><span>Заримдаа</span></label>
+          <label><input type="radio" name="I2" value="1"><span>Тодорхойгүй</span></label>
+          <label><input type="radio" name="I2" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">9. Шинэ артист таны хэв маягийг хуулбарлахад хэр хугацаа зарцуулах вэ?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="I3" value="3"><span>5+ жил</span></label>
+          <label><input type="radio" name="I3" value="2"><span>2–5 жил</span></label>
+          <label><input type="radio" name="I3" value="1"><span>1–2 жил</span></label>
+          <label><input type="radio" name="I3" value="0"><span>6 сар хангалттай</span></label>
+        </div>
+      </div>
+
+      <div class="dim-header">
+        <span class="dim-pill pill-O">O</span>
+        <span class="dim-title">Organized — Зохион байгуулалт</span>
+      </div>
+
+      <div class="card">
+        <p class="q-label">10. Танд менежер, агент, эсвэл брэнд стратегийн мэргэжилтэн бий юу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="O1" value="3"><span>Тийм, бүрэн</span></label>
+          <label><input type="radio" name="O1" value="2"><span>Хэсэгчлэн</span></label>
+          <label><input type="radio" name="O1" value="1"><span>Ганцаар хийж байна</span></label>
+          <label><input type="radio" name="O1" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">11. Таны орлогын эх үүсвэр олон талт уу? (тасалбар, мерч, спонсор, streaming, лиценз)</p>
+        <div class="radio-row">
+          <label><input type="radio" name="O2" value="3"><span>4+ эх үүсвэр</span></label>
+          <label><input type="radio" name="O2" value="2"><span>2–3 эх үүсвэр</span></label>
+          <label><input type="radio" name="O2" value="1"><span>1–2 эх үүсвэр</span></label>
+          <label><input type="radio" name="O2" value="0"><span>Зөвхөн нэг</span></label>
+        </div>
+      </div>
+      <div class="card">
+        <p class="q-label">12. Таны үзэгчийн мэдээлэл (имэйл, утас, дагагч)-ийг системтэйгээр цуглуулж хадгалдаг уу?</p>
+        <div class="radio-row">
+          <label><input type="radio" name="O3" value="3"><span>Тийм, CRM бий</span></label>
+          <label><input type="radio" name="O3" value="2"><span>Хэсэгчлэн</span></label>
+          <label><input type="radio" name="O3" value="1"><span>Сошиалд л байна</span></label>
+          <label><input type="radio" name="O3" value="0"><span>Үгүй</span></label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn" onclick="submitSurvey()" disabled>Үр дүн харах →</button>
+    </div>
+
+    <!-- Step 2: Result -->
+    <div id="resultStep" style="display:none">
+      <div class="page-title" id="resultName" style="margin-bottom:4px"></div>
+      <p class="page-sub" id="resultSub"></p>
+
+      <div class="score-grid">
+        <div class="score-tile"><div class="score-num" id="rTotal">—</div><div class="score-lbl">Нийт (36-аас)</div></div>
+        <div class="score-tile"><div class="score-num" id="rPct">—</div><div class="score-lbl">Хувь</div></div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="bar-row">
+          <div class="bar-meta"><span>V — Үнэ цэн</span><span id="rV">0/9</span></div>
+          <div class="bar-bg"><div class="bar-fill" id="bV" style="width:0%;background:var(--V)"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-meta"><span>R — Ховор байдал</span><span id="rR">0/9</span></div>
+          <div class="bar-bg"><div class="bar-fill" id="bR" style="width:0%;background:var(--R)"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-meta"><span>I — Дуурайхад хэцүү</span><span id="rI">0/9</span></div>
+          <div class="bar-bg"><div class="bar-fill" id="bI" style="width:0%;background:var(--I)"></div></div>
+        </div>
+        <div class="bar-row" style="margin-bottom:0">
+          <div class="bar-meta"><span>O — Зохион байгуулалт</span><span id="rO">0/9</span></div>
+          <div class="bar-bg"><div class="bar-fill" id="bO" style="width:0%;background:var(--O)"></div></div>
+        </div>
+      </div>
+
+      <div class="verdict" id="verdictCard">
+        <div class="verdict-title" id="verdictTitle"></div>
+        <div class="verdict-desc" id="verdictDesc"></div>
+        <ul class="action-list" id="verdictActions"></ul>
+      </div>
+
+      <button class="btn btn-ghost" onclick="restartSurvey()" style="margin-top:8px">↺ Дахин шалгах</button>
+    </div>
+
+  </div><!-- /student page -->
+
+  <!-- ════════ ADMIN PAGE ════════ -->
+  <div class="page" id="pageAdmin">
+
+    <!-- Login -->
+    <div id="adminLogin">
+      <div class="admin-login">
+        <h2>Багшийн нэвтрэлт</h2>
+        <label class="field-label">Нууц үг</label>
+        <input class="field-input" id="pwInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+        <div id="loginErr" class="warn" style="display:none">Нууц үг буруу байна.</div>
+        <button class="btn btn-primary" onclick="doLogin()" style="margin-top:0">Нэвтрэх</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="adminDash" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div class="page-title" style="font-size:22px">Багшийн самбар</div>
+          <div class="page-sub" style="margin-bottom:0">VRIO үнэлгээний ерөнхий дүн</div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Гарах</button>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdmin('stats')">📊 Статистик</button>
+        <button class="admin-tab" onclick="switchAdmin('students')">👥 Оюутнууд</button>
+        <button class="admin-tab" onclick="switchAdmin('discuss')">💬 Хэлэлцүүлэг</button>
+      </div>
+
+      <!-- STATS TAB -->
+      <div class="admin-section active" id="adminStats">
+        <div class="stats-grid">
+          <div class="stat-tile"><div class="stat-val" id="statCount">0</div><div class="stat-lbl">Нийт оюутан</div></div>
+          <div class="stat-tile"><div class="stat-val" id="statAvg">—</div><div class="stat-lbl">Дундаж оноо</div></div>
+        </div>
+
+        <div class="avg-bars">
+          <h3>Шалгуур бүрийн дундаж (9-аас)</h3>
+          <div class="bar-row">
+            <div class="bar-meta"><span>V — Үнэ цэн</span><span id="avgV">—</span></div>
+            <div class="bar-bg"><div class="bar-fill" id="abV" style="width:0%;background:var(--V)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-meta"><span>R — Ховор байдал</span><span id="avgR">—</span></div>
+            <div class="bar-bg"><div class="bar-fill" id="abR" style="width:0%;background:var(--R)"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-meta"><span>I — Дуурайхад хэцүү</span><span id="avgI">—</span></div>
+            <div class="bar-bg"><div class="bar-fill" id="abI" style="width:0%;background:var(--I)"></div></div>
+          </div>
+          <div class="bar-row" style="margin-bottom:0">
+            <div class="bar-meta"><span>O — Зохион байгуулалт</span><span id="avgO">—</span></div>
+            <div class="bar-bg"><div class="bar-fill" id="abO" style="width:0%;background:var(--O)"></div></div>
+          </div>
+        </div>
+
+        <span class="section-label">Хамгийн олон анхаарал шаардах чиглэл</span>
+        <div class="card" id="weakSpot" style="font-size:14px;color:var(--muted);padding:14px 16px"></div>
+      </div>
+
+      <!-- STUDENTS TAB -->
+      <div class="admin-section" id="adminStudents">
+        <span class="section-label">Бүх оюутны үр дүн</span>
+        <div class="card" style="overflow-x:auto;padding:0">
+          <table class="s-table">
+            <thead>
+              <tr>
+                <th>Нэр</th>
+                <th>Нийт</th>
+                <th>%</th>
+                <th>V</th><th>R</th><th>I</th><th>O</th>
+                <th>Дүн</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <tr><td colspan="8" style="color:var(--muted);font-size:13px;padding:20px;text-align:center">Одоохондоо оюутан байхгүй байна</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DISCUSS TAB -->
+      <div class="admin-section" id="adminDiscuss">
+        <div class="disc-compose">
+          <h4>Нийтэлж хэлэлцүүлэх</h4>
+          <textarea class="disc-textarea" id="adminPostText" placeholder="Хэлэлцүүлгийн сэдэв, санал, эсвэл тайлбараа бичнэ үү…"></textarea>
+          <button class="disc-send" onclick="postMessage('admin')">Нийтлэх</button>
+        </div>
+        <div class="disc-header">
+          <h3>Хэлэлцүүлэг</h3>
+          <span class="post-count" id="adminPostCount">0 пост</span>
+        </div>
+        <div id="adminDiscList"></div>
+      </div>
+
+    </div>
+  </div><!-- /admin page -->
+
+</div><!-- /app -->
+
+<!-- ── STUDENT DISCUSSION (shown after result) ── -->
+<!-- injected dynamically below result -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  API (Flask backend)
+// ═══════════════════════════════════════════
+
+const ADMIN_PW = 'admin2024';
+const BASE = '';
+
+async function apiGet(path) {
+  try {
+    const r = await fetch(BASE + path);
+    return await r.json();
+  } catch { return null; }
+}
+
+async function apiPost(path, data) {
+  try {
+    await fetch(BASE + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  } catch(e) { console.error('api error', e); }
+}
+
+// ═══════════════════════════════════════════
+//  NAV
+// ═══════════════════════════════════════════
+function switchPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById('page' + (p === 'student' ? 'Student' : 'Admin')).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab' + (p === 'student' ? 'Student' : 'Admin')).classList.add('active');
+  if (p === 'admin') checkAdminLogin();
+}
+
+// ═══════════════════════════════════════════
+//  STUDENT — NAME STEP
+// ═══════════════════════════════════════════
+// Generate a short anonymous ID per session
+let currentStudent = 'Оюутан-' + Math.random().toString(36).slice(2,6).toUpperCase();
+
+// ═══════════════════════════════════════════
+//  STUDENT — SURVEY
+// ═══════════════════════════════════════════
+const QNAMES = ['V1','V2','V3','R1','R2','R3','I1','I2','I3','O1','O2','O3'];
+
+function updateProgress() {
+  const answered = QNAMES.filter(n => document.querySelector(`input[name="${n}"]:checked`)).length;
+  document.getElementById('prog').style.width = Math.round(answered / 12 * 100) + '%';
+  document.getElementById('submitBtn').disabled = answered < 12;
+}
+
+document.querySelectorAll('#surveyStep input[type=radio]').forEach(r => r.addEventListener('change', updateProgress));
+
+function getScore(names) {
+  return names.reduce((s, n) => {
+    const el = document.querySelector(`input[name="${n}"]:checked`);
+    return s + (el ? parseInt(el.value) : 0);
+  }, 0);
+}
+
+async function submitSurvey() {
+  const V = getScore(['V1','V2','V3']);
+  const R = getScore(['R1','R2','R3']);
+  const I = getScore(['I1','I2','I3']);
+  const O = getScore(['O1','O2','O3']);
+  const tot = V+R+I+O;
+  const pct = Math.round(tot/36*100);
+
+  await apiPost('/api/response', { session_id: currentStudent, V, R, I, O, tot, pct });
+  showResult(currentStudent, V, R, I, O, tot, pct);
+}
+
+function showResult(name, V, R, I, O, tot, pct) {
+  document.getElementById('surveyStep').style.display = 'none';
+  document.getElementById('resultStep').style.display = 'block';
+
+  document.getElementById('resultName').textContent = name + '-ийн үнэлгээ';
+  document.getElementById('resultSub').textContent = 'VRIO хүрээний дагуу тооцоолсон';
+  document.getElementById('rTotal').textContent = tot+'/36';
+  document.getElementById('rPct').textContent = pct+'%';
+  document.getElementById('rV').textContent = V+'/9';
+  document.getElementById('rR').textContent = R+'/9';
+  document.getElementById('rI').textContent = I+'/9';
+  document.getElementById('rO').textContent = O+'/9';
+
+  setTimeout(() => {
+    document.getElementById('bV').style.width = Math.round(V/9*100)+'%';
+    document.getElementById('bR').style.width = Math.round(R/9*100)+'%';
+    document.getElementById('bI').style.width = Math.round(I/9*100)+'%';
+    document.getElementById('bO').style.width = Math.round(O/9*100)+'%';
+  }, 100);
+
+  let title, desc, actions, bg;
+  if (V < 5) {
+    bg='rgba(239,68,68,.08)'; title='Суурь хөрөнгө хангалтгүй';
+    desc='Хамгийн түрүүнд Valuable шалгуурыг бататгах хэрэгтэй. Таны урлаг үзэгчид ямар үнэ цэн өгч байгааг тодорхой болго.';
+    actions=['Зорилтот үзэгчдийнхээ хэрэгцээг судал','Таны урлаг ямар асуудлыг шийддэгийг нэг өгүүлбэрт бич','Контентоо тэр үнэ цэн дээр суурилж дахин боль'];
+  } else if (pct >= 78) {
+    bg='rgba(52,211,153,.08)'; title='Тогтвортой өрсөлдөөний давуу тал';
+    desc='VRIO-ийн бүх шалгуурыг хангаж байна. Одоо энэ давуу талаа хадгалж, томруулах стратеги хэрэгтэй.';
+    actions=['Брэндийн үнэ цэнийг жил бүр тооцоол','Олон улсын зах зээлд нэвтрэх боломж судал','Баг, систем, IP-ийг хамгаалах хуулийн зөвлөхтэй ажилла'];
+  } else if (O < 5) {
+    bg='rgba(251,146,60,.08)'; title='Ашиглагдаагүй давуу тал — O сул байна';
+    desc='Таны V, R, I сайн ч Organized байдал дутмаг. Давуу тал байгаа ч системгүйгээс мөнгө болж хувирахгүй байна.';
+    actions=['Менежер эсвэл агентлагтай гэрээ байгуул','Орлогын 2+ шинэ эх үүсвэр нэм (мерч, лиценз)','Фэний мэдээллийн сан (CRM) үүсгэж эхэл'];
+  } else if (I < 5) {
+    bg='rgba(251,146,60,.08)'; title='Түр зуурын давуу тал — I хөгжүүл';
+    desc='Одоогоор давуу тал байгаа ч өрсөлдөгч дуурайж чадна. Брэндийн гүн суурийг бататгах цаг иржээ.';
+    actions=['Хувийн түүх, соёл, амьдралын онцлогоо контентдоо оруул','Фэнтэйгээ хувийн холбоо тогтоох community үүсгэ','Жинхэнэ өвөрмөц нэг зүйлд гүнзгийрч мэргэшил'];
+  } else {
+    bg='rgba(77,166,255,.08)'; title='Сайн суурь — V, R бататга';
+    desc='Зохион байгуулалт сайн ч өвөрмөц байдал болон үнэ цэнийг нэмэгдүүлэх шаардлагатай.';
+    actions=['Өрсөлдөгчдөөсөө юугаараа ялгарахаа тодруул','Зорилтот үзэгчдийнхээ профайлыг нарийн зур','Шинэ бүтээлчлэлийн туршилт хийж хариу үйлдлийг хэмж'];
+  }
+
+  const vc = document.getElementById('verdictCard');
+  vc.style.background = bg;
+  document.getElementById('verdictTitle').textContent = title;
+  document.getElementById('verdictDesc').textContent = desc;
+  document.getElementById('verdictActions').innerHTML = actions.map(a=>`<li>${a}</li>`).join('');
+
+  // inject student discussion section
+  injectStudentDiscuss();
+  window.scrollTo(0, 0);
+  showToast('✓ Үр дүн хадгалагдлаа');
+}
+
+function restartSurvey() {
+  document.querySelectorAll('#surveyStep input[type=radio]').forEach(r => r.checked = false);
+  document.getElementById('prog').style.width = '0%';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('resultStep').style.display = 'none';
+  document.getElementById('surveyStep').style.display = 'block';
+  // remove student discuss if exists
+  const sd = document.getElementById('studentDiscSection');
+  if (sd) sd.remove();
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════════
+//  STUDENT DISCUSSION (after result)
+// ═══════════════════════════════════════════
+function injectStudentDiscuss() {
+  let sd = document.getElementById('studentDiscSection');
+  if (!sd) {
+    sd = document.createElement('div');
+    sd.id = 'studentDiscSection';
+    sd.innerHTML = `
+      <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border)">
+        <div class="disc-header">
+          <h3>Хэлэлцүүлэг</h3>
+          <span class="post-count" id="sPostCount">0 пост</span>
+        </div>
+        <div class="disc-compose">
+          <h4>Санал, асуулт, туршлагаа хуваалц</h4>
+          <textarea class="disc-textarea" id="sPostText" placeholder="Бичнэ үү…"></textarea>
+          <button class="disc-send" onclick="postMessage('student')">Нийтлэх</button>
+        </div>
+        <div id="sDiscList"></div>
+      </div>
+    `;
+    document.getElementById('pageStudent').appendChild(sd);
+  }
+  renderDiscussion('student');
+}
+
+// ═══════════════════════════════════════════
+//  DISCUSSION
+// ═══════════════════════════════════════════
+async function postMessage(role) {
+  const textareaId = role === 'admin' ? 'adminPostText' : 'sPostText';
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+  const text = ta.value.trim();
+  if (!text) return;
+
+  const senderName = role === 'admin' ? 'Багш' : (currentStudent || 'Оюутан');
+  await apiPost('/api/discussion', { role, name: senderName, text });
+  ta.value = '';
+  renderDiscussion('both');
+  showToast('✓ Нийтлэгдлээ');
+}
+
+const COLORS = ['#7c6ef7','#4da6ff','#34d399','#fb923c','#f472b6','#a78bfa','#22d3ee'];
+function colorFor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+}
+function timeAgo(ts) {
+  const d = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (d < 60) return 'Дөнгөж';
+  if (d < 3600) return Math.floor(d/60) + ' мин өмнө';
+  if (d < 86400) return Math.floor(d/3600) + ' цаг өмнө';
+  return Math.floor(d/86400) + ' өдрийн өмнө';
+}
+
+async function renderDiscussion(target) {
+  const posts = (await apiGet('/api/discussion')) || [];
+
+  const render = (listId, countId) => {
+    const list = document.getElementById(listId);
+    const countEl = document.getElementById(countId);
+    if (!list) return;
+    if (countEl) countEl.textContent = posts.length + ' пост';
+    if (posts.length === 0) {
+      list.innerHTML = `<div class="empty-state"><span class="emoji">💬</span>Одоохондоо пост байхгүй байна</div>`;
+      return;
+    }
+    list.innerHTML = posts.slice().reverse().map(p => `
+      <div class="post-card">
+        <div class="post-meta">
+          <div class="post-avatar" style="background:${colorFor(p.name)}20;color:${colorFor(p.name)}">${initials(p.name)}</div>
+          <span class="post-name">${p.name}</span>
+          <span class="post-role ${p.role === 'admin' ? 'role-admin' : 'role-student'}">${p.role === 'admin' ? '👩‍🏫 Багш' : '🎤 Оюутан'}</span>
+          <span class="post-time">${timeAgo(p.ts)}</span>
+        </div>
+        <div class="post-body">${p.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+      </div>
+    `).join('');
+  };
+
+  if (target === 'student' || target === 'both') render('sDiscList', 'sPostCount');
+  if (target === 'admin' || target === 'both') render('adminDiscList', 'adminPostCount');
+}
+
+// ═══════════════════════════════════════════
+//  ADMIN AUTH
+// ═══════════════════════════════════════════
+let adminAuthed = false;
+
+function checkAdminLogin() {
+  document.getElementById('adminLogin').style.display = adminAuthed ? 'none' : 'block';
+  document.getElementById('adminDash').style.display = adminAuthed ? 'block' : 'none';
+  if (adminAuthed) refreshAdminDash();
+}
+
+function doLogin() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw === ADMIN_PW) {
+    adminAuthed = true;
+    document.getElementById('loginErr').style.display = 'none';
+    checkAdminLogin();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  adminAuthed = false;
+  document.getElementById('pwInput').value = '';
+  checkAdminLogin();
+}
+
+// ═══════════════════════════════════════════
+//  ADMIN TABS
+// ═══════════════════════════════════════════
+function switchAdmin(tab) {
+  document.querySelectorAll('.admin-tab').forEach((t,i) => {
+    const tabs = ['stats','students','discuss'];
+    t.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('admin' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'discuss') renderDiscussion('admin');
+}
+
+// ═══════════════════════════════════════════
+//  ADMIN DASHBOARD
+// ═══════════════════════════════════════════
+async function refreshAdminDash() {
+  const responses = (await apiGet('/api/responses')) || [];
+  const n = responses.length;
+
+  document.getElementById('statCount').textContent = n;
+
+  if (n === 0) {
+    document.getElementById('statAvg').textContent = '—';
+    ['V','R','I','O'].forEach(d => {
+      document.getElementById('avg'+d).textContent = '—';
+      document.getElementById('ab'+d).style.width = '0%';
+    });
+    document.getElementById('weakSpot').textContent = 'Одоохондоо дата байхгүй байна.';
+    document.getElementById('studentTableBody').innerHTML =
+      '<tr><td colspan="8" style="color:var(--muted);font-size:13px;padding:20px;text-align:center">Одоохондоо оюутан байхгүй байна</td></tr>';
+    return;
+  }
+
+  const avg = k => (responses.reduce((s,r) => s + r[k], 0) / n);
+  const aV = avg('V'), aR = avg('R'), aI = avg('I'), aO = avg('O');
+  const aTot = avg('tot');
+
+  document.getElementById('statAvg').textContent = aTot.toFixed(1);
+  const dims = {V: aV, R: aR, I: aI, O: aO};
+  Object.entries(dims).forEach(([k, v]) => {
+    document.getElementById('avg'+k).textContent = v.toFixed(1)+'/9';
+    setTimeout(() => { document.getElementById('ab'+k).style.width = Math.round(v/9*100)+'%'; }, 100);
+  });
+
+  // weakest
+  const weakKey = Object.entries(dims).sort((a,b)=>a[1]-b[1])[0][0];
+  const weakNames = {V:'Valuable (Үнэ цэн)', R:'Rare (Ховор байдал)', I:'Inimitable (Дуурайхад хэцүү)', O:'Organized (Зохион байгуулалт)'};
+  document.getElementById('weakSpot').innerHTML = `
+    Оюутнуудын хамгийн сул тал нь <strong style="color:var(--accent2)">${weakNames[weakKey]}</strong> —
+    дундаж ${dims[weakKey].toFixed(1)}/9. Энэ чиглэлд анги дотроо хэлэлцүүлэг хийвэл зохимжтой.
+  `;
+
+  // table
+  const rows = responses.map(r => {
+    const badge = r.pct >= 78 ? 'badge-high' : r.pct >= 50 ? 'badge-mid' : 'badge-low';
+    const label = r.pct >= 78 ? 'Өндөр' : r.pct >= 50 ? 'Дунд' : 'Сул';
+    return `<tr>
+      <td style="font-weight:500">${r.name}</td>
+      <td>${r.tot}/36</td>
+      <td>${r.pct}%</td>
+      <td style="color:var(--V)">${r.V}</td>
+      <td style="color:var(--R)">${r.R}</td>
+      <td style="color:var(--I)">${r.I}</td>
+      <td style="color:var(--O)">${r.O}</td>
+      <td><span class="badge ${badge}">${label}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('studentTableBody').innerHTML = rows;
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>
