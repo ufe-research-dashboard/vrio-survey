@@ -77,6 +77,15 @@ def post_discussion():
     conn.close()
     return jsonify({'ok': True})
 
+@app.route('/api/reset', methods=['POST'])
+def reset_data():
+    conn = get_db()
+    conn.execute('DELETE FROM responses')
+    conn.execute('DELETE FROM discussion')
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
