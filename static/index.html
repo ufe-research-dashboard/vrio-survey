@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="mn" data-theme="dark">
+<html lang="mn" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,6 +51,28 @@ body {
 
 /* ── LAYOUT ── */
 #app { max-width: 700px; margin: 0 auto; padding: 20px 16px 100px; }
+  #pageAdmin { max-width: none; }
+  #pageAdmin .admin-login-wrap { max-width: 380px; margin: 50px auto; }
+  
+  /* ── WIDE ADMIN LAYOUT ── */
+  .admin-wide { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .admin-two-col { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .admin-two-col { grid-template-columns: 1fr; } }
+  
+  /* students card bigger */
+  .student-row td { padding: 13px 16px; font-size: 14px; }
+  .student-row:hover td { background: var(--surface2); cursor: default; }
+  .score-bar-mini { height: 5px; border-radius: 3px; background: var(--surface3); margin-top: 4px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
+  .score-bar-mini-fill { height: 5px; border-radius: 3px; }
+
+  /* discuss wide */
+  .disc-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .disc-wide { grid-template-columns: 1fr; } }
+  .disc-col-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+  .disc-scroll { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .disc-scroll::-webkit-scrollbar { width: 4px; }
+  .disc-scroll::-webkit-scrollbar-track { background: transparent; }
+  .disc-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 /* ── NAV ── */
 .top-nav {
@@ -616,7 +638,7 @@ body {
       </div>
     </div>
 
-    <div id="adminDash" style="display:none">
+    <div id="adminDash" style="display:none"><div class="admin-wide">
       <div class="admin-header">
         <div>
           <div class="admin-title">Багшийн самбар</div>
@@ -665,14 +687,25 @@ body {
 
       <!-- STUDENTS -->
       <div class="admin-section" id="adminStudents">
-        <span class="section-label">Бүх оюутны үр дүн</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <span class="section-label" style="margin-bottom:0">Бүх оюутны үр дүн</span>
+          <span id="studentCountBadge" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+        </div>
         <div class="table-wrap">
-          <table class="s-table">
+          <table class="s-table" style="font-size:14px">
             <thead>
-              <tr><th>ID</th><th>Нийт</th><th>%</th><th style="color:var(--V)">V</th><th style="color:var(--R)">R</th><th style="color:var(--I)">I</th><th style="color:var(--O)">O</th><th>Дүн</th></tr>
+              <tr>
+                <th style="width:160px">Оюутан</th>
+                <th style="width:110px">Нийт оноо</th>
+                <th style="color:var(--V);width:120px">V — Үнэ цэн</th>
+                <th style="color:var(--R);width:120px">R — Ховор</th>
+                <th style="color:var(--I);width:130px">I — Давтагдашгүй</th>
+                <th style="color:var(--O);width:130px">O — Зохион байг.</th>
+                <th>Дүгнэлт</th>
+              </tr>
             </thead>
             <tbody id="studentTableBody">
-              <tr><td colspan="8" style="color:var(--muted);font-size:13px;padding:24px;text-align:center">Одоохондоо оюутан байхгүй байна</td></tr>
+              <tr><td colspan="7" style="color:var(--muted);font-size:13px;padding:32px;text-align:center">Одоохондоо оюутан байхгүй байна</td></tr>
             </tbody>
           </table>
         </div>
@@ -680,17 +713,29 @@ body {
 
       <!-- DISCUSS -->
       <div class="admin-section" id="adminDiscuss">
-        <div class="disc-compose">
-          <span class="disc-compose-label">Багшийн мэдэгдэл / тайлбар нийтлэх</span>
-          <textarea class="disc-textarea" id="adminPostText" placeholder="Оюутнуудад хэлэх зүйл, хэлэлцүүлгийн сэдэв, тайлбар...&#10;&#10;Жишээ: &quot;Ангийн дундаж V оноо сул байна, дараагийн хичээлд энэ дээр анхаарна уу.&quot;" style="height:130px"></textarea>
-          <button class="disc-send" onclick="postMessage('admin')">Нийтлэх →</button>
-        </div>
+        <div class="disc-wide">
+          <!-- LEFT: compose + teacher posts -->
+          <div>
+            <div class="disc-col-title">👩‍🏫 Багшийн мэдэгдэл</div>
+            <div class="disc-compose" style="margin-bottom:16px">
+              <span class="disc-compose-label">Шинэ мэдэгдэл нийтлэх</span>
+              <textarea class="disc-textarea" id="adminPostText" placeholder="Оюутнуудад хэлэх зүйл, хэлэлцүүлгийн сэдэв, тайлбар...
 
-        <div class="disc-list-header">
-          <div class="disc-list-title">Бүх хэлэлцүүлэг</div>
-          <span class="disc-count" id="adminPostCount">0 пост</span>
+Жишээ: &quot;Ангийн дундаж V оноо сул байна, дараагийн хичээлд энэ дээр анхаарна уу.&quot;" style="height:140px"></textarea>
+              <button class="disc-send" onclick="postMessage('admin')" style="width:100%;margin-top:10px">Нийтлэх →</button>
+            </div>
+            <div class="disc-col-title" style="margin-top:4px">Багшийн постууд</div>
+            <div class="disc-scroll" id="adminOnlyDiscList" style="max-height:360px"></div>
+          </div>
+          <!-- RIGHT: all student posts -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="disc-col-title" style="margin-bottom:0">💬 Бүх хэлэлцүүлэг</div>
+              <span class="disc-count" id="adminPostCount">0 пост</span>
+            </div>
+            <div class="disc-scroll" id="adminDiscList"></div>
+          </div>
         </div>
-        <div id="adminDiscList"></div>
       </div>
     </div>
 
@@ -723,7 +768,7 @@ function toggleTheme() {
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
 (function() {
-  const saved = localStorage.getItem('theme') || 'dark';
+  const saved = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
@@ -882,7 +927,28 @@ async function renderDiscussion(target) {
   };
 
   if(target==='student'||target==='both') render('sDiscList','sPostCount');
-  if(target==='admin'||target==='both') render('adminDiscList','adminPostCount');
+  if(target==='admin'||target==='both') {
+    render('adminDiscList','adminPostCount');
+    // render teacher-only posts on left column
+    const adminOnlyList = document.getElementById('adminOnlyDiscList');
+    if(adminOnlyList) {
+      const teacherPosts = posts.filter(p=>p.role==='admin');
+      if(teacherPosts.length===0) {
+        adminOnlyList.innerHTML='<div class="empty-disc" style="padding:24px 0"><span class="empty-icon" style="font-size:24px">📝</span><p style="font-size:13px">Нийтэлсэн мэдэгдэл байхгүй</p></div>';
+      } else {
+        adminOnlyList.innerHTML=teacherPosts.slice().reverse().map(p=>`
+          <div class="post-card is-admin" style="margin-bottom:8px">
+            <div class="post-meta">
+              <div class="post-avatar" style="background:rgba(245,158,66,.15);color:var(--O)">${initials(p.name)}</div>
+              <span class="post-name">${p.name}</span>
+              <span class="post-time">${timeAgo(p.ts)}</span>
+            </div>
+            <div class="post-body">${p.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+          </div>
+        `).join('');
+      }
+    }
+  }
 }
 
 // ── admin auth ──
@@ -936,10 +1002,26 @@ async function refreshAdminDash(){
   const weakNames={V:'Valuable (Үнэ цэн)',R:'Rare (Ховор байдал)',I:'Inimitable (Дуурайхад хэцүү)',O:'Organized (Зохион байгуулалт)'};
   document.getElementById('weakSpot').innerHTML=`Оюутнуудын хамгийн сул тал нь <strong style="color:var(--accent-light)">${weakNames[weakKey]}</strong> — дундаж ${dims[weakKey].toFixed(1)}/9. Энэ чиглэлд анги дотроо хэлэлцүүлэг хийвэл зохимжтой.`;
 
+  document.getElementById('studentCountBadge').textContent = n + ' оюутан';
   document.getElementById('studentTableBody').innerHTML=responses.map(r=>{
     const b=r.pct>=78?'badge-high':r.pct>=50?'badge-mid':'badge-low';
-    const l=r.pct>=78?'Өндөр':r.pct>=50?'Дунд':'Сул';
-    return `<tr><td style="font-weight:600">${r.session_id}</td><td>${r.tot}/36</td><td>${r.pct}%</td><td style="color:var(--V)">${r.V}</td><td style="color:var(--R)">${r.R}</td><td style="color:var(--I)">${r.I}</td><td style="color:var(--O)">${r.O}</td><td><span class="badge ${b}">${l}</span></td></tr>`;
+    const l=r.pct>=78?'🏆 Өндөр':r.pct>=50?'💎 Дунд':'⚡ Сул';
+    function dimBar(val, color) {
+      const w = Math.round(val/9*100);
+      return `<div>${val}/9 <span class="score-bar-mini"><span class="score-bar-mini-fill" style="width:${w}%;background:${color};display:block"></span></span></div>`;
+    }
+    return `<tr class="student-row">
+      <td style="font-weight:700;font-size:14px">${r.session_id}</td>
+      <td>
+        <div style="font-size:18px;font-weight:800;color:var(--accent-light)">${r.pct}%</div>
+        <div style="font-size:11px;color:var(--muted)">${r.tot}/36 оноо</div>
+      </td>
+      <td>${dimBar(r.V,'var(--V)')}</td>
+      <td>${dimBar(r.R,'var(--R)')}</td>
+      <td>${dimBar(r.I,'var(--I)')}</td>
+      <td>${dimBar(r.O,'var(--O)')}</td>
+      <td><span class="badge ${b}">${l}</span></td>
+    </tr>`;
   }).join('');
 }
 
