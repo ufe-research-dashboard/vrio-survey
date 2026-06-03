@@ -444,7 +444,7 @@ body {
 
       <div class="dim-header">
         <span class="dim-pill pill-V">V</span>
-        <div><div class="dim-title">Valuable — Үнэ цэнтэй эсэх</div><div class="dim-sub">Таны урлаг хэний ямар хэрэгцээг хангадаг вэ?</div></div>
+        <div><div class="dim-title">Valuable — Үнэ цэнэтэй эсэх</div><div class="dim-sub">Таны урлаг хэний ямар хэрэгцээг хангадаг вэ?</div></div>
       </div>
 
       <div class="card">
@@ -609,7 +609,7 @@ body {
 
       <div class="bars-card">
         <div class="bar-row">
-          <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэн</span><span id="rV">0/9</span></div>
+          <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэнэ</span><span id="rV">0/9</span></div>
           <div class="bar-bg"><div class="bar-fill" id="bV" style="width:0%;background:var(--V)"></div></div>
         </div>
         <div class="bar-row">
@@ -725,7 +725,7 @@ body {
               <div class="avg-bars-card" style="margin-bottom:0">
                 <h3>Шалгуур бүрийн дундаж (9-аас)</h3>
                 <div class="bar-row">
-                  <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэн</span><span id="avgV">—</span></div>
+                  <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэнэ</span><span id="avgV">—</span></div>
                   <div class="bar-bg"><div class="bar-fill" id="abV" style="width:0%;background:var(--V)"></div></div>
                 </div>
                 <div class="bar-row">
@@ -764,7 +764,7 @@ body {
                   <tr>
                     <th>Оюутан</th>
                     <th>Нийт %</th>
-                    <th style="color:var(--V)">V — Үнэ цэн</th>
+                    <th style="color:var(--V)">V — Үнэ цэнэ</th>
                     <th style="color:var(--R)">R — Ховор</th>
                     <th style="color:var(--I)">I — Давтагдашгүй</th>
                     <th style="color:var(--O)">O — Зохион байг.</th>
@@ -907,8 +907,8 @@ function showResult(V,R,I,O,tot,pct) {
   let icon,title,desc,actions,bg;
   if(V<5){
     icon='⚠️';bg='rgba(239,68,68,.07)';title='Суурь хөрөнгө хангалтгүй';
-    desc='Хамгийн түрүүнд Valuable шалгуурыг бататгах хэрэгтэй. Таны урлаг үзэгчид ямар үнэ цэн өгч байгааг тодорхой болгох шаардлагатай. Үнэ цэнгүй бол бусад шалгуур хамаагүй.';
-    actions=['Зорилтот үзэгчдийнхээ хэрэгцээг нарийн судал','Таны урлаг ямар асуудлыг шийддэгийг нэг өгүүлбэрт бич','Контентоо тэр үнэ цэн дээр суурилж дахин боль'];
+    desc='Хамгийн түрүүнд Valuable шалгуурыг бататгах хэрэгтэй. Таны урлаг үзэгчид ямар үнэ цэнэ өгч байгааг тодорхой болгох шаардлагатай. Үнэ цэнгүй бол бусад шалгуур хамаагүй.';
+    actions=['Зорилтот үзэгчдийнхээ хэрэгцээг нарийн судал','Таны урлаг ямар асуудлыг шийддэгийг нэг өгүүлбэрт бич','Контентоо тэр үнэ цэнэ дээр суурилж дахин боль'];
   } else if(pct>=78){
     icon='🏆';bg='rgba(46,212,160,.07)';title='Тогтвортой өрсөлдөөний давуу тал';
     desc='VRIO-ийн бүх шалгуурыг хангаж байна — энэ маш сайн үзүүлэлт. Одоо энэ давуу талаа хадгалж, цааш томруулах стратеги хэрэгтэй. Олон улсын зах зээл нээлттэй.';
@@ -1096,7 +1096,7 @@ async function refreshAdminDash(){
   });
 
   const weakKey=Object.entries(dims).sort((a,b)=>a[1]-b[1])[0][0];
-  const weakNames={V:'Valuable (Үнэ цэн)',R:'Rare (Ховор байдал)',I:'Inimitable (Дуурайхад хэцүү)',O:'Organized (Зохион байгуулалт)'};
+  const weakNames={V:'Valuable (Үнэ цэнэ)',R:'Rare (Ховор байдал)',I:'Inimitable (Дуурайхад хэцүү)',O:'Organized (Зохион байгуулалт)'};
   document.getElementById('weakSpot').innerHTML=`Оюутнуудын хамгийн сул тал нь <strong style="color:var(--accent-light)">${weakNames[weakKey]}</strong> — дундаж ${dims[weakKey].toFixed(1)}/9. Энэ чиглэлд анги дотроо хэлэлцүүлэг хийвэл зохимжтой.`;
 
   document.getElementById('studentCountBadge').textContent = n + ' оюутан';
