@@ -52,8 +52,8 @@ body {
 /* ── LAYOUT ── */
 #app { max-width: 700px; margin: 0 auto; padding: 20px 16px 100px; }
   /* ── ADMIN FULL LAYOUT ── */
-  #pageAdmin { position: fixed; inset: 0; overflow: hidden; display: none; flex-direction: column; }
-  #pageAdmin.active { display: flex; }
+  #pageAdmin { position: fixed; inset: 0; overflow: hidden; display: none !important; flex-direction: column; }
+  #pageAdmin.active { display: flex !important; }
 
   .admin-topbar {
     display: flex; align-items: center; gap: 16px;
@@ -80,7 +80,7 @@ body {
   .admin-main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* login overlay */
-  #adminLogin { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10; }
+  #adminLogin { position: absolute; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10; }
   .admin-login-wrap { max-width: 380px; width: 90%; }
 
   /* stats grid */
@@ -1303,45 +1303,52 @@ async function saveAllQuestions() {
 
 // ── FEEDBACK ──
 async function renderFeedbackList() {
-  const [responses, feedbacks] = await Promise.all([
-    apiGet('/api/responses'),
-    apiGet('/api/feedback')
-  ]);
+  const results = await Promise.all([apiGet('/api/responses'), apiGet('/api/feedback')]);
+  const responses = results[0] || [];
+  const feedbacks = results[1] || [];
   const fbMap = {};
-  (feedbacks||[]).forEach(f => fbMap[f.session_id] = f.text);
+  feedbacks.forEach(function(f) { fbMap[f.session_id] = f.text; });
   
   const list = document.getElementById('feedbackList');
-  if (!responses || responses.length === 0) {
+  if (responses.length === 0) {
     list.innerHTML = '<div class="empty-disc"><span class="empty-icon">📋</span><p>Одоохондоо оюутан байхгүй байна</p></div>';
     return;
   }
 
-  list.innerHTML = responses.map(r => {
-    const b = r.pct>=78?'badge-high':r.pct>=50?'badge-mid':'badge-low';
+  const rows = responses.map(function(r) {
+    const b = r.pct>=78 ? 'badge-high' : r.pct>=50 ? 'badge-mid' : 'badge-low';
+    const lbl = r.pct>=78 ? 'Өндөр' : r.pct>=50 ? 'Дунд' : 'Сул';
     const existing = fbMap[r.session_id] || '';
-    return `<div class="fb-card">
-      <div class="fb-header">
-        <span class="fb-name">${r.session_id}</span>
-        <span class="fb-score">Нийт: <strong>${r.tot}/36</strong> · ${r.pct}% · <span class="badge ${b}">${r.pct>=78?'Өндөр':r.pct>=50?'Дунд':'Сул'}</span></span>
-      </div>
-      <div class="fb-scores-row">
-        <span class="fb-score-chip" style="background:rgba(77,166,255,.15);color:var(--V)">V: ${r.V}/9</span>
-        <span class="fb-score-chip" style="background:rgba(179,157,250,.15);color:var(--R)">R: ${r.R}/9</span>
-        <span class="fb-score-chip" style="background:rgba(46,212,160,.15);color:var(--I)">I: ${r.I}/9</span>
-        <span class="fb-score-chip" style="background:rgba(245,158,66,.15);color:var(--O)">O: ${r.O}/9</span>
-      </div>
-      ${existing ? `<div class="fb-existing-label">✓ Одоогийн зөвлөмж</div><div class="fb-existing">${existing.replace(/
-/g,'<br>')}</div>` : ''}
-      <textarea class="fb-textarea" id="fb_${r.session_id}" placeholder="${r.session_id}-д зориулсан хувийн зөвлөмж бич...">${existing}</textarea>
-      <button class="fb-send" onclick="saveFeedback('${r.session_id}')">💾 Хадгалах</button>
-    </div>`;
-  }).join('');
+    const existingHtml = existing
+      ? '<div class="fb-existing-label">✓ Одоогийн зөвлөмж</div><div class="fb-existing">' + existing.split('\n').join('<br>') + '</div>'
+      : '';
+    const sid = r.session_id;
+    return [
+      '<div class="fb-card">',
+        '<div class="fb-header">',
+          '<span class="fb-name">' + sid + '</span>',
+          '<span class="fb-score">Нийт: <strong>' + r.tot + '/36</strong> · ' + r.pct + '% · <span class="badge ' + b + '">' + lbl + '</span></span>',
+        '</div>',
+        '<div class="fb-scores-row">',
+          '<span class="fb-score-chip" style="background:rgba(77,166,255,.15);color:var(--V)">V: ' + r.V + '/9</span>',
+          '<span class="fb-score-chip" style="background:rgba(179,157,250,.15);color:var(--R)">R: ' + r.R + '/9</span>',
+          '<span class="fb-score-chip" style="background:rgba(46,212,160,.15);color:var(--I)">I: ' + r.I + '/9</span>',
+          '<span class="fb-score-chip" style="background:rgba(245,158,66,.15);color:var(--O)">O: ' + r.O + '/9</span>',
+        '</div>',
+        existingHtml,
+        '<textarea class="fb-textarea" id="fb_' + sid + '" placeholder="' + sid + '-д зориулсан хувийн зөвлөмж бич...">' + existing + '</textarea>',
+        '<button class="fb-send" onclick="saveFeedback(this)" data-sid="' + sid + '">💾 Хадгалах</button>',
+      '</div>'
+    ].join('');
+  });
+  list.innerHTML = rows.join('');
 }
 
-async function saveFeedback(session_id) {
+async function saveFeedback(btn) {
+  const session_id = btn.getAttribute('data-sid');
   const text = document.getElementById('fb_'+session_id).value.trim();
   if (!text) return;
-  await apiPost('/api/feedback', {session_id, text});
+  await apiPost('/api/feedback', {session_id: session_id, text: text});
   showToast('✓ Зөвлөмж хадгалагдлаа');
   renderFeedbackList();
 }
@@ -1354,8 +1361,7 @@ async function loadStudentFeedback(session_id) {
   const box = document.getElementById('teacherFeedbackBox');
   const txt = document.getElementById('teacherFeedbackText');
   if (fb && fb.text) {
-    txt.innerHTML = fb.text.replace(/
-/g,'<br>');
+    txt.innerHTML = fb.text.split('\n').join('<br>');
     box.style.display = 'block';
   } else {
     box.style.display = 'none';
