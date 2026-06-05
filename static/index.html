@@ -108,6 +108,56 @@ body {
   .disc-feed::-webkit-scrollbar { width: 4px; }
   .disc-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+  /* questions editor */
+  .q-edit-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; }
+  .q-edit-card:hover { border-color: var(--accent); }
+  .q-edit-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .q-edit-num { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .q-edit-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 10px 14px; font-size: 14px;
+    color: var(--text); font-family: 'Manrope', sans-serif;
+    margin-bottom: 8px; transition: border-color .2s; font-weight: 500;
+    resize: none;
+  }
+  .q-edit-input:focus { outline: none; border-color: var(--accent); }
+  .q-opts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opt-row { display: flex; align-items: center; gap: 8px; }
+  .opt-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; min-width: 28px; text-align: center; }
+  .opt-3 { background: rgba(46,212,160,.15); color: var(--I); }
+  .opt-2 { background: rgba(77,166,255,.15); color: var(--V); }
+  .opt-1 { background: rgba(245,158,66,.15); color: var(--O); }
+  .opt-0 { background: rgba(239,68,68,.15); color: #f87171; }
+  .save-all-btn {
+    position: sticky; bottom: 20px; left: 0; right: 0;
+    width: 100%; padding: 14px; background: var(--accent);
+    color: #fff; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: 'Manrope', sans-serif;
+    box-shadow: 0 4px 20px rgba(123,108,246,.4);
+    transition: all .2s; margin-top: 16px;
+  }
+  .save-all-btn:hover { background: #6a5de6; transform: translateY(-1px); }
+
+  /* feedback */
+  .fb-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; }
+  .fb-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .fb-name { font-size: 15px; font-weight: 700; }
+  .fb-score { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .fb-scores-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fb-score-chip { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+  .fb-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 11px 14px; font-size: 14px;
+    color: var(--text); font-family: 'Manrope', sans-serif;
+    resize: none; height: 90px; transition: border-color .2s; font-weight: 500;
+  }
+  .fb-textarea:focus { outline: none; border-color: var(--accent); }
+  .fb-send { margin-top: 8px; padding: 8px 18px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Manrope', sans-serif; transition: all .2s; }
+  .fb-send:hover { background: #6a5de6; }
+  .fb-existing { background: rgba(46,212,160,.08); border: 1px solid rgba(46,212,160,.2); border-radius: 9px; padding: 10px 14px; font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 8px; font-weight: 500; }
+  .fb-existing-label { font-size: 11px; font-weight: 700; color: var(--I); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+
 /* ── NAV ── */
 .top-nav {
   display: flex; align-items: center; gap: 8px;
@@ -444,7 +494,7 @@ body {
 
       <div class="dim-header">
         <span class="dim-pill pill-V">V</span>
-        <div><div class="dim-title">Valuable — Үнэ цэнэтэй эсэх</div><div class="dim-sub">Таны урлаг хэний ямар хэрэгцээг хангадаг вэ?</div></div>
+        <div><div class="dim-title">Valuable — Үнэ цэнтэй эсэх</div><div class="dim-sub">Таны урлаг хэний ямар хэрэгцээг хангадаг вэ?</div></div>
       </div>
 
       <div class="card">
@@ -609,7 +659,7 @@ body {
 
       <div class="bars-card">
         <div class="bar-row">
-          <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэнэ</span><span id="rV">0/9</span></div>
+          <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэн</span><span id="rV">0/9</span></div>
           <div class="bar-bg"><div class="bar-fill" id="bV" style="width:0%;background:var(--V)"></div></div>
         </div>
         <div class="bar-row">
@@ -633,6 +683,12 @@ body {
         <ul class="action-list" id="verdictActions"></ul>
       </div>
 
+      <div id="teacherFeedbackBox" style="display:none;margin-top:16px">
+        <div style="background:rgba(46,212,160,.07);border:1px solid rgba(46,212,160,.25);border-radius:14px;padding:18px 20px">
+          <div style="font-size:11px;font-weight:700;color:var(--I);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">👩‍🏫 Багшийн зөвлөмж</div>
+          <div id="teacherFeedbackText" style="font-size:14px;line-height:1.7;font-weight:500"></div>
+        </div>
+      </div>
       <button class="btn btn-ghost" onclick="restartSurvey()" style="margin-top:8px">↺ Дахин шалгах</button>
 
       <!-- Student discussion -->
@@ -642,7 +698,7 @@ body {
 
         <div class="disc-compose">
           <span class="disc-compose-label">Санал, асуулт, туршлагаа хуваалц</span>
-          <textarea class="disc-textarea" id="sPostText" placeholder="Та цаашид юуг анхаарах хэрэгтэй гэж бодож байна?"></textarea>
+          <textarea class="disc-textarea" id="sPostText" placeholder="Энэ тестийн талаар юу бодож байна? Юу мэдэрсэн? Асуулт байна уу?"></textarea>
           <button class="disc-send" onclick="postMessage('student')">Нийтлэх →</button>
         </div>
 
@@ -684,6 +740,8 @@ body {
           <button class="admin-nav-btn active" id="anStats" onclick="switchAdmin('stats')">📊 Статистик</button>
           <button class="admin-nav-btn" id="anStudents" onclick="switchAdmin('students')">👥 Оюутнууд</button>
           <button class="admin-nav-btn" id="anDiscuss" onclick="switchAdmin('discuss')">💬 Хэлэлцүүлэг</button>
+          <button class="admin-nav-btn" id="anQuestions" onclick="switchAdmin('questions')">✏️ Асуултууд</button>
+          <button class="admin-nav-btn" id="anFeedback" onclick="switchAdmin('feedback')">📝 Зөвлөмж</button>
         </nav>
         <div class="admin-topbar-right">
           <button class="theme-btn" onclick="toggleTheme()" id="adminThemeBtn">🌙</button>
@@ -725,7 +783,7 @@ body {
               <div class="avg-bars-card" style="margin-bottom:0">
                 <h3>Шалгуур бүрийн дундаж (9-аас)</h3>
                 <div class="bar-row">
-                  <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэнэ</span><span id="avgV">—</span></div>
+                  <div class="bar-meta"><span style="color:var(--V)">V — Үнэ цэн</span><span id="avgV">—</span></div>
                   <div class="bar-bg"><div class="bar-fill" id="abV" style="width:0%;background:var(--V)"></div></div>
                 </div>
                 <div class="bar-row">
@@ -764,7 +822,7 @@ body {
                   <tr>
                     <th>Оюутан</th>
                     <th>Нийт %</th>
-                    <th style="color:var(--V)">V — Үнэ цэнэ</th>
+                    <th style="color:var(--V)">V — Үнэ цэн</th>
                     <th style="color:var(--R)">R — Ховор</th>
                     <th style="color:var(--I)">I — Давтагдашгүй</th>
                     <th style="color:var(--O)">O — Зохион байг.</th>
@@ -802,6 +860,28 @@ body {
                 <div class="disc-feed" style="flex:1" id="adminDiscList"></div>
               </div>
             </div>
+          </div>
+
+
+          <!-- QUESTIONS EDITOR -->
+          <div class="admin-section" id="adminQuestions">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+              <div>
+                <div style="font-size:18px;font-weight:700">Асуулт засварлах</div>
+                <div style="font-size:13px;color:var(--muted);margin-top:2px">12 асуулт, VRIO бүр 3 асуулттай. Хариулт бүрийн оноо: 3=Тийм, 2=Хэсэгчлэн, 1=Ховор/Тодорхойгүй, 0=Үгүй</div>
+              </div>
+            </div>
+            <div id="questionEditorList"></div>
+            <button class="save-all-btn" onclick="saveAllQuestions()">💾 Бүх өөрчлөлтийг хадгалах</button>
+          </div>
+
+          <!-- FEEDBACK PER STUDENT -->
+          <div class="admin-section" id="adminFeedback">
+            <div style="margin-bottom:20px">
+              <div style="font-size:18px;font-weight:700">Оюутны хариулт & Зөвлөмж</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:2px">Оюутан бүрийн дүнг харж, хувийн зөвлөмж бичнэ. Оюутан үр дүнгээ харахад тайлбар нь харагдана.</div>
+            </div>
+            <div id="feedbackList"></div>
           </div>
 
         </div><!-- /admin-main -->
@@ -907,8 +987,8 @@ function showResult(V,R,I,O,tot,pct) {
   let icon,title,desc,actions,bg;
   if(V<5){
     icon='⚠️';bg='rgba(239,68,68,.07)';title='Суурь хөрөнгө хангалтгүй';
-    desc='Хамгийн түрүүнд Valuable шалгуурыг бататгах хэрэгтэй. Таны урлаг үзэгчид ямар үнэ цэнэ өгч байгааг тодорхой болгох шаардлагатай. Үнэ цэнгүй бол бусад шалгуур хамаагүй.';
-    actions=['Зорилтот үзэгчдийнхээ хэрэгцээг нарийн судал','Таны урлаг ямар асуудлыг шийддэгийг нэг өгүүлбэрт бич','Контентоо тэр үнэ цэнэ дээр суурилж дахин боль'];
+    desc='Хамгийн түрүүнд Valuable шалгуурыг бататгах хэрэгтэй. Таны урлаг үзэгчид ямар үнэ цэн өгч байгааг тодорхой болгох шаардлагатай. Үнэ цэнгүй бол бусад шалгуур хамаагүй.';
+    actions=['Зорилтот үзэгчдийнхээ хэрэгцээг нарийн судал','Таны урлаг ямар асуудлыг шийддэгийг нэг өгүүлбэрт бич','Контентоо тэр үнэ цэн дээр суурилж дахин боль'];
   } else if(pct>=78){
     icon='🏆';bg='rgba(46,212,160,.07)';title='Тогтвортой өрсөлдөөний давуу тал';
     desc='VRIO-ийн бүх шалгуурыг хангаж байна — энэ маш сайн үзүүлэлт. Одоо энэ давуу талаа хадгалж, цааш томруулах стратеги хэрэгтэй. Олон улсын зах зээл нээлттэй.';
@@ -934,6 +1014,7 @@ function showResult(V,R,I,O,tot,pct) {
   document.getElementById('verdictActions').innerHTML=actions.map(a=>`<li>${a}</li>`).join('');
 
   renderDiscussion('student');
+  loadStudentFeedback(currentStudent);
   window.scrollTo(0,0);
   showToast('✓ Үр дүн хадгалагдлаа');
 }
@@ -1045,13 +1126,15 @@ function doLogin(){
 function doLogout(){ adminAuthed=false; stopPolling(); document.getElementById('pwInput').value=''; switchPage('student'); }
 
 function switchAdmin(tab){
-  ['stats','students','discuss'].forEach(t=>{
+  ['stats','students','discuss','questions','feedback'].forEach(t=>{
     const btn = document.getElementById('an'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn) btn.classList.toggle('active', t===tab);
   });
   document.querySelectorAll('.admin-section').forEach(s=>s.classList.remove('active'));
   document.getElementById('admin'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
   if(tab==='discuss') renderDiscussion('admin');
+  if(tab==='questions') renderQuestionEditor();
+  if(tab==='feedback') renderFeedbackList();
 }
 
 async function refreshAdminDash(){
@@ -1096,7 +1179,7 @@ async function refreshAdminDash(){
   });
 
   const weakKey=Object.entries(dims).sort((a,b)=>a[1]-b[1])[0][0];
-  const weakNames={V:'Valuable (Үнэ цэнэ)',R:'Rare (Ховор байдал)',I:'Inimitable (Дуурайхад хэцүү)',O:'Organized (Зохион байгуулалт)'};
+  const weakNames={V:'Valuable (Үнэ цэн)',R:'Rare (Ховор байдал)',I:'Inimitable (Дуурайхад хэцүү)',O:'Organized (Зохион байгуулалт)'};
   document.getElementById('weakSpot').innerHTML=`Оюутнуудын хамгийн сул тал нь <strong style="color:var(--accent-light)">${weakNames[weakKey]}</strong> — дундаж ${dims[weakKey].toFixed(1)}/9. Энэ чиглэлд анги дотроо хэлэлцүүлэг хийвэл зохимжтой.`;
 
   document.getElementById('studentCountBadge').textContent = n + ' оюутан';
@@ -1139,6 +1222,146 @@ async function doReset() {
   }
 }
 
+// ── DEFAULT QUESTIONS ──
+const DEFAULT_QUESTIONS = [
+  {dim:'V',q_index:0,text:'Таны урлаг / авьяас нь үзэгч, захиалагчид тодорхой асуудлыг шийддэг үү, эсвэл тодорхой сэтгэл хөдлөл төрүүлдэг үү?',opt3:'Тийм, тодорхой',opt2:'Хэсэгчлэн',opt1:'Тодорхойгүй',opt0:'Үгүй'},
+  {dim:'V',q_index:1,text:'Таны бүтээл / үзүүлбэр нь хүмүүс мөнгө, цаг зарцуулахад бэлэн байдаг уу?',opt3:'Тийм, төлдөг',opt2:'Заримдаа',opt1:'Ховор',opt0:'Үгүй'},
+  {dim:'V',q_index:2,text:'Таны ажлыг үзсэний дараа хүмүүс найз нөхөддөө санал болгодог уу?',opt3:'Байнга',opt2:'Заримдаа',opt1:'Ховор',opt0:'Үгүй'},
+  {dim:'R',q_index:0,text:'Таны урлагийн хэв маяг, дуу хоолой, дүр төрх нь Монголын артистуудаас ялгарч байдаг уу?',opt3:'Маш өвөрмөц',opt2:'Бага зэрэг',opt1:'Төстэй хүн бий',opt0:'Ялгаагүй'},
+  {dim:'R',q_index:1,text:'Таны нэрийг сонсоод тэр дороо санаанд орох тодорхой зүйл (дүр, дуу, хэв маяг) байдаг уу?',opt3:'Тийм, тодорхой',opt2:'Хэсэгчлэн',opt1:'Тодорхойгүй',opt0:'Үгүй'},
+  {dim:'R',q_index:2,text:'Танд өрсөлдөгч артистаас ялгарах тусгай ур чадвар, соёл, хэл, эсвэл нэгдмэл сэдэв байдаг уу?',opt3:'Тийм',opt2:'Бий, хөгжүүлж байна',opt1:'Тодорхойгүй',opt0:'Үгүй'},
+  {dim:'I',q_index:0,text:'Таны брэнд нь олон жилийн туршлага, амьдралын түүх дээр тулгуурласан уу?',opt3:'Тийм, гүнзгий',opt2:'Хэсэгчлэн',opt1:'Тийм бишгүй',opt0:'Үгүй'},
+  {dim:'I',q_index:1,text:'Таны фэнүүд тантай хувийн холбоо, нэр хүнд мэдэрдэг үү? (зүгээр л дуу биш, хүнийг дагадаг)',opt3:'Маш тодорхой',opt2:'Заримдаа',opt1:'Тодорхойгүй',opt0:'Үгүй'},
+  {dim:'I',q_index:2,text:'Шинэ артист таны хэв маягийг хуулбарлахад хэр хугацаа зарцуулах вэ?',opt3:'5+ жил',opt2:'2–5 жил',opt1:'1–2 жил',opt0:'6 сар хангалттай'},
+  {dim:'O',q_index:0,text:'Танд менежер, агент, эсвэл брэнд стратегийн мэргэжилтэн бий юу?',opt3:'Тийм, бүрэн',opt2:'Хэсэгчлэн',opt1:'Ганцаар хийж байна',opt0:'Үгүй'},
+  {dim:'O',q_index:1,text:'Таны орлогын эх үүсвэр олон талт уу? (тасалбар, мерч, спонсор, streaming, лиценз)',opt3:'4+ эх үүсвэр',opt2:'2–3 эх үүсвэр',opt1:'1–2 эх үүсвэр',opt0:'Зөвхөн нэг'},
+  {dim:'O',q_index:2,text:'Таны үзэгчийн мэдээлэл (имэйл, утас, дагагч)-ийг системтэйгээр цуглуулж хадгалдаг уу?',opt3:'Тийм, CRM бий',opt2:'Хэсэгчлэн',opt1:'Сошиалд л байна',opt0:'Үгүй'},
+];
+
+let _editableQuestions = null;
+
+async function loadQuestions() {
+  const remote = await apiGet('/api/questions');
+  if (remote && remote.length === 12) {
+    _editableQuestions = remote;
+  } else {
+    _editableQuestions = DEFAULT_QUESTIONS.map((q,i) => ({...q, id: i+1}));
+  }
+  return _editableQuestions;
+}
+
+async function renderQuestionEditor() {
+  const qs = await loadQuestions();
+  const dimNames = {V:'Valuable — Үнэ цэн', R:'Rare — Ховор', I:'Inimitable — Давтагдашгүй', O:'Organized — Зохион байгуулалт'};
+  const dimColors = {V:'var(--V)', R:'var(--R)', I:'var(--I)', O:'var(--O)'};
+  const dimPillClass = {V:'pill-V', R:'pill-R', I:'pill-I', O:'pill-O'};
+  let html = '';
+  let globalIdx = 0;
+  ['V','R','I','O'].forEach(dim => {
+    html += `<div style="margin-bottom:6px;margin-top:20px;display:flex;align-items:center;gap:10px">
+      <span class="dim-pill ${dimPillClass[dim]}" style="font-size:12px">${dim}</span>
+      <span style="font-size:14px;font-weight:700;color:${dimColors[dim]}">${dimNames[dim]}</span>
+    </div>`;
+    qs.filter(q=>q.dim===dim).sort((a,b)=>a.q_index-b.q_index).forEach(q => {
+      globalIdx++;
+      const qi = `q_${dim}_${q.q_index}`;
+      html += `<div class="q-edit-card">
+        <div class="q-edit-header">
+          <span class="q-edit-num">Асуулт ${globalIdx}</span>
+        </div>
+        <textarea class="q-edit-input" id="${qi}_text" rows="2">${q.text}</textarea>
+        <div class="q-opts-grid">
+          <div class="opt-row"><span class="opt-badge opt-3">3</span><input class="q-edit-input" id="${qi}_opt3" value="${q.opt3}" style="margin-bottom:0"></div>
+          <div class="opt-row"><span class="opt-badge opt-2">2</span><input class="q-edit-input" id="${qi}_opt2" value="${q.opt2}" style="margin-bottom:0"></div>
+          <div class="opt-row"><span class="opt-badge opt-1">1</span><input class="q-edit-input" id="${qi}_opt1" value="${q.opt1}" style="margin-bottom:0"></div>
+          <div class="opt-row"><span class="opt-badge opt-0">0</span><input class="q-edit-input" id="${qi}_opt0" value="${q.opt0}" style="margin-bottom:0"></div>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('questionEditorList').innerHTML = html;
+}
+
+async function saveAllQuestions() {
+  const qs = await loadQuestions();
+  const updated = qs.map(q => {
+    const qi = `q_${q.dim}_${q.q_index}`;
+    return {
+      dim: q.dim,
+      q_index: q.q_index,
+      text: document.getElementById(`${qi}_text`).value.trim(),
+      opt3: document.getElementById(`${qi}_opt3`).value.trim(),
+      opt2: document.getElementById(`${qi}_opt2`).value.trim(),
+      opt1: document.getElementById(`${qi}_opt1`).value.trim(),
+      opt0: document.getElementById(`${qi}_opt0`).value.trim(),
+    };
+  });
+  await apiPost('/api/questions', updated);
+  _editableQuestions = null; // force reload
+  showToast('✓ Асуултууд хадгалагдлаа');
+}
+
+// ── FEEDBACK ──
+async function renderFeedbackList() {
+  const [responses, feedbacks] = await Promise.all([
+    apiGet('/api/responses'),
+    apiGet('/api/feedback')
+  ]);
+  const fbMap = {};
+  (feedbacks||[]).forEach(f => fbMap[f.session_id] = f.text);
+  
+  const list = document.getElementById('feedbackList');
+  if (!responses || responses.length === 0) {
+    list.innerHTML = '<div class="empty-disc"><span class="empty-icon">📋</span><p>Одоохондоо оюутан байхгүй байна</p></div>';
+    return;
+  }
+
+  list.innerHTML = responses.map(r => {
+    const b = r.pct>=78?'badge-high':r.pct>=50?'badge-mid':'badge-low';
+    const existing = fbMap[r.session_id] || '';
+    return `<div class="fb-card">
+      <div class="fb-header">
+        <span class="fb-name">${r.session_id}</span>
+        <span class="fb-score">Нийт: <strong>${r.tot}/36</strong> · ${r.pct}% · <span class="badge ${b}">${r.pct>=78?'Өндөр':r.pct>=50?'Дунд':'Сул'}</span></span>
+      </div>
+      <div class="fb-scores-row">
+        <span class="fb-score-chip" style="background:rgba(77,166,255,.15);color:var(--V)">V: ${r.V}/9</span>
+        <span class="fb-score-chip" style="background:rgba(179,157,250,.15);color:var(--R)">R: ${r.R}/9</span>
+        <span class="fb-score-chip" style="background:rgba(46,212,160,.15);color:var(--I)">I: ${r.I}/9</span>
+        <span class="fb-score-chip" style="background:rgba(245,158,66,.15);color:var(--O)">O: ${r.O}/9</span>
+      </div>
+      ${existing ? `<div class="fb-existing-label">✓ Одоогийн зөвлөмж</div><div class="fb-existing">${existing.replace(/
+/g,'<br>')}</div>` : ''}
+      <textarea class="fb-textarea" id="fb_${r.session_id}" placeholder="${r.session_id}-д зориулсан хувийн зөвлөмж бич...">${existing}</textarea>
+      <button class="fb-send" onclick="saveFeedback('${r.session_id}')">💾 Хадгалах</button>
+    </div>`;
+  }).join('');
+}
+
+async function saveFeedback(session_id) {
+  const text = document.getElementById('fb_'+session_id).value.trim();
+  if (!text) return;
+  await apiPost('/api/feedback', {session_id, text});
+  showToast('✓ Зөвлөмж хадгалагдлаа');
+  renderFeedbackList();
+}
+
+// ── load teacher feedback for student ──
+async function loadStudentFeedback(session_id) {
+  const feedbacks = await apiGet('/api/feedback');
+  if (!feedbacks) return;
+  const fb = feedbacks.find(f => f.session_id === session_id);
+  const box = document.getElementById('teacherFeedbackBox');
+  const txt = document.getElementById('teacherFeedbackText');
+  if (fb && fb.text) {
+    txt.innerHTML = fb.text.replace(/
+/g,'<br>');
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
 // ── auto-refresh polling ──
 let _pollInterval = null;
 
@@ -1153,6 +1376,8 @@ function startPolling() {
       await refreshAdminDash();
     } else if (id === 'adminDiscuss') {
       await renderDiscussion('admin');
+    } else if (id === 'adminFeedback') {
+      await renderFeedbackList();
     }
   }, 5000);
 }
