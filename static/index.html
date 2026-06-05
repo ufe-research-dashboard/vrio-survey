@@ -1232,73 +1232,142 @@ const DEFAULT_QUESTIONS = [
   {dim:'R',q_index:2,text:'Танд өрсөлдөгч артистаас ялгарах тусгай ур чадвар, соёл, хэл, эсвэл нэгдмэл сэдэв байдаг уу?',opt3:'Тийм',opt2:'Бий, хөгжүүлж байна',opt1:'Тодорхойгүй',opt0:'Үгүй'},
   {dim:'I',q_index:0,text:'Таны брэнд нь олон жилийн туршлага, амьдралын түүх дээр тулгуурласан уу?',opt3:'Тийм, гүнзгий',opt2:'Хэсэгчлэн',opt1:'Тийм бишгүй',opt0:'Үгүй'},
   {dim:'I',q_index:1,text:'Таны фэнүүд тантай хувийн холбоо, нэр хүнд мэдэрдэг үү? (зүгээр л дуу биш, хүнийг дагадаг)',opt3:'Маш тодорхой',opt2:'Заримдаа',opt1:'Тодорхойгүй',opt0:'Үгүй'},
-  {dim:'I',q_index:2,text:'Шинэ артист таны хэв маягийг хуулбарлахад хэр хугацаа зарцуулах вэ?',opt3:'5+ жил',opt2:'2–5 жил',opt1:'1–2 жил',opt0:'6 сар хангалттай'},
+  {dim:'I',q_index:2,text:'Шинэ артист таны хэв маягийг хуулбарлахад хэр хугацаа зарцуулах вэ?',opt3:'5+ жил',opt2:'2-5 жил',opt1:'1-2 жил',opt0:'6 сар хангалттай'},
   {dim:'O',q_index:0,text:'Танд менежер, агент, эсвэл брэнд стратегийн мэргэжилтэн бий юу?',opt3:'Тийм, бүрэн',opt2:'Хэсэгчлэн',opt1:'Ганцаар хийж байна',opt0:'Үгүй'},
-  {dim:'O',q_index:1,text:'Таны орлогын эх үүсвэр олон талт уу? (тасалбар, мерч, спонсор, streaming, лиценз)',opt3:'4+ эх үүсвэр',opt2:'2–3 эх үүсвэр',opt1:'1–2 эх үүсвэр',opt0:'Зөвхөн нэг'},
+  {dim:'O',q_index:1,text:'Таны орлогын эх үүсвэр олон талт уу? (тасалбар, мерч, спонсор, streaming, лиценз)',opt3:'4+ эх үүсвэр',opt2:'2-3 эх үүсвэр',opt1:'1-2 эх үүсвэр',opt0:'Зөвхөн нэг'},
   {dim:'O',q_index:2,text:'Таны үзэгчийн мэдээлэл (имэйл, утас, дагагч)-ийг системтэйгээр цуглуулж хадгалдаг уу?',opt3:'Тийм, CRM бий',opt2:'Хэсэгчлэн',opt1:'Сошиалд л байна',opt0:'Үгүй'},
 ];
 
-let _editableQuestions = null;
+// in-memory working copy for the editor
+let _editQs = null;
 
 async function loadQuestions() {
   const remote = await apiGet('/api/questions');
-  if (remote && remote.length === 12) {
-    _editableQuestions = remote;
+  if (remote && remote.length > 0) {
+    _editQs = remote.map(function(q,i){ return Object.assign({}, q, {_uid: i}); });
   } else {
-    _editableQuestions = DEFAULT_QUESTIONS.map((q,i) => ({...q, id: i+1}));
+    _editQs = DEFAULT_QUESTIONS.map(function(q,i){ return Object.assign({}, q, {_uid: i}); });
   }
-  return _editableQuestions;
+  return _editQs;
 }
 
-async function renderQuestionEditor() {
-  const qs = await loadQuestions();
-  const dimNames = {V:'Valuable — Үнэ цэн', R:'Rare — Ховор', I:'Inimitable — Давтагдашгүй', O:'Organized — Зохион байгуулалт'};
-  const dimColors = {V:'var(--V)', R:'var(--R)', I:'var(--I)', O:'var(--O)'};
-  const dimPillClass = {V:'pill-V', R:'pill-R', I:'pill-I', O:'pill-O'};
+function getEditorState() {
+  // read current values from DOM into _editQs
+  if (!_editQs) return [];
+  return _editQs.map(function(q) {
+    const el = function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+    return {
+      dim: q.dim,
+      q_index: q.q_index,
+      _uid: q._uid,
+      text: el('qe_'+q._uid+'_text') || q.text,
+      opt3: el('qe_'+q._uid+'_opt3') || q.opt3,
+      opt2: el('qe_'+q._uid+'_opt2') || q.opt2,
+      opt1: el('qe_'+q._uid+'_opt1') || q.opt1,
+      opt0: el('qe_'+q._uid+'_opt0') || q.opt0,
+    };
+  });
+}
+
+const dimNames  = {V:'Valuable — Үнэ цэн', R:'Rare — Ховор', I:'Inimitable — Давтагдашгүй', O:'Organized — Зохион байгуулалт'};
+const dimColors = {V:'var(--V)', R:'var(--R)', I:'var(--I)', O:'var(--O)'};
+const dimPills  = {V:'pill-V', R:'pill-R', I:'pill-I', O:'pill-O'};
+
+function renderQuestionEditorFromState() {
+  if (!_editQs) return;
+  const dims = ['V','R','I','O'];
   let html = '';
-  let globalIdx = 0;
-  ['V','R','I','O'].forEach(dim => {
-    html += `<div style="margin-bottom:6px;margin-top:20px;display:flex;align-items:center;gap:10px">
-      <span class="dim-pill ${dimPillClass[dim]}" style="font-size:12px">${dim}</span>
-      <span style="font-size:14px;font-weight:700;color:${dimColors[dim]}">${dimNames[dim]}</span>
-    </div>`;
-    qs.filter(q=>q.dim===dim).sort((a,b)=>a.q_index-b.q_index).forEach(q => {
-      globalIdx++;
-      const qi = `q_${dim}_${q.q_index}`;
-      html += `<div class="q-edit-card">
-        <div class="q-edit-header">
-          <span class="q-edit-num">Асуулт ${globalIdx}</span>
-        </div>
-        <textarea class="q-edit-input" id="${qi}_text" rows="2">${q.text}</textarea>
-        <div class="q-opts-grid">
-          <div class="opt-row"><span class="opt-badge opt-3">3</span><input class="q-edit-input" id="${qi}_opt3" value="${q.opt3}" style="margin-bottom:0"></div>
-          <div class="opt-row"><span class="opt-badge opt-2">2</span><input class="q-edit-input" id="${qi}_opt2" value="${q.opt2}" style="margin-bottom:0"></div>
-          <div class="opt-row"><span class="opt-badge opt-1">1</span><input class="q-edit-input" id="${qi}_opt1" value="${q.opt1}" style="margin-bottom:0"></div>
-          <div class="opt-row"><span class="opt-badge opt-0">0</span><input class="q-edit-input" id="${qi}_opt0" value="${q.opt0}" style="margin-bottom:0"></div>
-        </div>
-      </div>`;
+  let num = 0;
+  dims.forEach(function(dim) {
+    const dqs = _editQs.filter(function(q){ return q.dim===dim; });
+    html += '<div style="margin:24px 0 10px;display:flex;align-items:center;justify-content:space-between">'
+      + '<div style="display:flex;align-items:center;gap:10px">'
+      + '<span class="dim-pill ' + dimPills[dim] + '">' + dim + '</span>'
+      + '<span style="font-size:14px;font-weight:700;color:' + dimColors[dim] + '">' + dimNames[dim] + '</span>'
+      + '</div>'
+      + '<button onclick="addQuestion(\"' + dim + '\")" style="font-size:12px;font-weight:700;padding:5px 12px;background:rgba(123,108,246,.15);color:var(--accent-light);border:1px solid rgba(123,108,246,.3);border-radius:8px;cursor:pointer;font-family:Manrope,sans-serif">+ Асуулт нэмэх</button>'
+      + '</div>';
+    if (dqs.length === 0) {
+      html += '<div style="color:var(--muted);font-size:13px;padding:14px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;margin-bottom:8px">Асуулт байхгүй байна</div>';
+    }
+    dqs.forEach(function(q) {
+      num++;
+      const uid = q._uid;
+      html += '<div class="q-edit-card" id="qcard_' + uid + '">'
+        + '<div class="q-edit-header" style="justify-content:space-between">'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+        + '<span class="q-edit-num">Асуулт ' + num + '</span>'
+        + '<span class="dim-pill ' + dimPills[dim] + '" style="font-size:10px">' + dim + '</span>'
+        + '</div>'
+        + '<button onclick="removeQuestion(' + uid + ')" title="Устгах" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:Manrope,sans-serif">✕ Устгах</button>'
+        + '</div>'
+        + '<textarea class="q-edit-input" id="qe_' + uid + '_text" rows="2">' + q.text + '</textarea>'
+        + '<div class="q-opts-grid">'
+        + '<div class="opt-row"><span class="opt-badge opt-3">3</span><input class="q-edit-input" id="qe_' + uid + '_opt3" value="' + q.opt3 + '" style="margin-bottom:0" placeholder="Хамгийн өндөр оноо"></div>'
+        + '<div class="opt-row"><span class="opt-badge opt-2">2</span><input class="q-edit-input" id="qe_' + uid + '_opt2" value="' + q.opt2 + '" style="margin-bottom:0" placeholder="Дунд оноо"></div>'
+        + '<div class="opt-row"><span class="opt-badge opt-1">1</span><input class="q-edit-input" id="qe_' + uid + '_opt1" value="' + q.opt1 + '" style="margin-bottom:0" placeholder="Бага оноо"></div>'
+        + '<div class="opt-row"><span class="opt-badge opt-0">0</span><input class="q-edit-input" id="qe_' + uid + '_opt0" value="' + q.opt0 + '" style="margin-bottom:0" placeholder="Хамгийн бага оноо"></div>'
+        + '</div>'
+        + '</div>';
     });
   });
   document.getElementById('questionEditorList').innerHTML = html;
 }
 
-async function saveAllQuestions() {
-  const qs = await loadQuestions();
-  const updated = qs.map(q => {
-    const qi = `q_${q.dim}_${q.q_index}`;
-    return {
-      dim: q.dim,
-      q_index: q.q_index,
-      text: document.getElementById(`${qi}_text`).value.trim(),
-      opt3: document.getElementById(`${qi}_opt3`).value.trim(),
-      opt2: document.getElementById(`${qi}_opt2`).value.trim(),
-      opt1: document.getElementById(`${qi}_opt1`).value.trim(),
-      opt0: document.getElementById(`${qi}_opt0`).value.trim(),
-    };
+async function renderQuestionEditor() {
+  await loadQuestions();
+  renderQuestionEditorFromState();
+}
+
+function addQuestion(dim) {
+  // save current DOM state first
+  _editQs = getEditorState();
+  const maxUid = _editQs.reduce(function(m,q){ return Math.max(m, q._uid||0); }, 0);
+  const dimQs = _editQs.filter(function(q){ return q.dim===dim; });
+  _editQs.push({
+    dim: dim,
+    q_index: dimQs.length,
+    _uid: maxUid + 1,
+    text: '',
+    opt3: 'Тийм, тодорхой',
+    opt2: 'Хэсэгчлэн',
+    opt1: 'Тодорхойгүй',
+    opt0: 'Үгүй'
   });
-  await apiPost('/api/questions', updated);
-  _editableQuestions = null; // force reload
-  showToast('✓ Асуултууд хадгалагдлаа');
+  renderQuestionEditorFromState();
+  // scroll to new card
+  setTimeout(function(){
+    var el = document.getElementById('qcard_'+(maxUid+1));
+    if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+    var ta = document.getElementById('qe_'+(maxUid+1)+'_text');
+    if(ta) ta.focus();
+  }, 100);
+}
+
+function removeQuestion(uid) {
+  _editQs = getEditorState();
+  _editQs = _editQs.filter(function(q){ return q._uid !== uid; });
+  // re-index q_index per dim
+  ['V','R','I','O'].forEach(function(dim){
+    var i=0;
+    _editQs.forEach(function(q){ if(q.dim===dim){ q.q_index=i; i++; } });
+  });
+  renderQuestionEditorFromState();
+  showToast('Асуулт устгагдлаа');
+}
+
+async function saveAllQuestions() {
+  _editQs = getEditorState();
+  // validate
+  var empty = _editQs.filter(function(q){ return !q.text.trim(); });
+  if (empty.length > 0) { showToast('⚠️ Хоосон асуулт байна, бөглөнө үү'); return; }
+  var toSave = _editQs.map(function(q,i){
+    return {dim:q.dim, q_index:q.q_index, text:q.text, opt3:q.opt3, opt2:q.opt2, opt1:q.opt1, opt0:q.opt0};
+  });
+  await apiPost('/api/questions', toSave);
+  _editQs = null;
+  showToast('✓ Асуултууд хадгалагдлаа — оюутанд шинэчлэгдлээ');
+  renderQuestionEditor();
 }
 
 // ── FEEDBACK ──
