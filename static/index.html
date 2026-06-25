@@ -1285,7 +1285,7 @@ function renderQuestionEditorFromState() {
       + '<span class="dim-pill ' + dimPills[dim] + '">' + dim + '</span>'
       + '<span style="font-size:14px;font-weight:700;color:' + dimColors[dim] + '">' + dimNames[dim] + '</span>'
       + '</div>'
-      + '<button onclick="addQuestion(\"' + dim + '\")" style="font-size:12px;font-weight:700;padding:5px 12px;background:rgba(123,108,246,.15);color:var(--accent-light);border:1px solid rgba(123,108,246,.3);border-radius:8px;cursor:pointer;font-family:Manrope,sans-serif">+ Асуулт нэмэх</button>'
+      + '<button class="add-q-btn" data-dim="' + dim + '" style="font-size:12px;font-weight:700;padding:5px 12px;background:rgba(123,108,246,.15);color:var(--accent-light);border:1px solid rgba(123,108,246,.3);border-radius:8px;cursor:pointer;font-family:Manrope,sans-serif">+ Асуулт нэмэх</button>'
       + '</div>';
     if (dqs.length === 0) {
       html += '<div style="color:var(--muted);font-size:13px;padding:14px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;margin-bottom:8px">Асуулт байхгүй байна</div>';
@@ -1299,7 +1299,7 @@ function renderQuestionEditorFromState() {
         + '<span class="q-edit-num">Асуулт ' + num + '</span>'
         + '<span class="dim-pill ' + dimPills[dim] + '" style="font-size:10px">' + dim + '</span>'
         + '</div>'
-        + '<button onclick="removeQuestion(' + uid + ')" title="Устгах" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:Manrope,sans-serif">✕ Устгах</button>'
+        + '<button class="rem-q-btn" data-uid="' + uid + '" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:Manrope,sans-serif">✕ Устгах</button>'
         + '</div>'
         + '<textarea class="q-edit-input" id="qe_' + uid + '_text" rows="2">' + q.text + '</textarea>'
         + '<div class="q-opts-grid">'
@@ -1312,6 +1312,13 @@ function renderQuestionEditorFromState() {
     });
   });
   document.getElementById('questionEditorList').innerHTML = html;
+  // event delegation for add/remove buttons
+  document.getElementById('questionEditorList').onclick = function(e) {
+    var addBtn = e.target.closest('.add-q-btn');
+    var remBtn = e.target.closest('.rem-q-btn');
+    if (addBtn) addQuestion(addBtn.getAttribute('data-dim'));
+    if (remBtn) removeQuestion(+remBtn.getAttribute('data-uid'));
+  };
 }
 
 async function renderQuestionEditor() {
